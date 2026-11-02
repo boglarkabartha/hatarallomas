@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Határállomás</title>
+<meta name="description" content="Pénzügyőrös kvízjáték a vámszabályokról: nincs ellenőrzés vagy ellenőrzés?">
+<meta name="theme-color" content="#2F4A3A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Határállomás">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: repülőtéri vámcsarnok – fent pontsáv, középen az utas útlevél-kártyája, alatta a két folyosótábla mint döntőgomb */
+:root {
+  --bg: #E9ECE8;
+  --panel: #FFFFFF;
+  --ink: #1B2420;
+  --muted: #5E6A64;
+  --line: #CDD5D0;
+  --uniform: #2F4A3A;     /* pénzügyőri egyenruha-zöld */
+  --uniform-soft: #DFE8E2;
+  --go: #1F7A45;          /* zöld folyosó */
+  --go-soft: #E0F1E6;
+  --stop: #C0392B;        /* piros folyosó */
+  --stop-soft: #F7E1DE;
+  --sign-ink: #FFFFFF;
+  --gold: #B88A1E;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816; --panel: #1A2421; --ink: #E3EAE6; --muted: #98A69F; --line: #2D3B36;
+    --uniform: #8DB79D; --uniform-soft: #20302A; --go: #2E9E5E; --go-soft: #16301F;
+    --stop: #D9503F; --stop-soft: #3A1C18; --sign-ink: #FFFFFF; --gold: #E0B84F; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111816; --panel: #1A2421; --ink: #E3EAE6; --muted: #98A69F; --line: #2D3B36;
+  --uniform: #8DB79D; --uniform-soft: #20302A; --go: #2E9E5E; --go-soft: #16301F;
+  --stop: #D9503F; --stop-soft: #3A1C18; --sign-ink: #FFFFFF; --gold: #E0B84F; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: max(48px, env(safe-area-inset-bottom, 0px));
+}
+.wrap { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--uniform); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(36px, 7vw, 52px); line-height: .95; margin: 0; letter-spacing: .01em; text-transform: uppercase; }
+.sub { margin: 0; color: var(--muted); max-width: 58ch; }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; display: flex; flex-direction: column; min-width: 72px; }
+.stat b { font-family: var(--display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.stat.warn b { color: var(--stop); }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress > span { display: block; height: 100%; width: 0; background: var(--uniform); transition: width .35s ease; }
+.timebar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.timebar > span { display: block; height: 100%; width: 100%; background: var(--gold); }
+.timebar.warn > span { background: var(--stop); }
+
+.toolbar { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 4px 12px; cursor: pointer; background: var(--panel); color: var(--uniform); border: 1px solid var(--line); }
+.chip:focus-visible { outline: 3px solid var(--uniform); outline-offset: 2px; }
+
+/* Kezdőképernyő */
+.intro { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.intro h2 { margin: 0; font-family: var(--display); font-size: 28px; text-transform: uppercase; letter-spacing: .03em; }
+.intro p { margin: 0; }
+.levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.level {
+  font: inherit; text-align: left; cursor: pointer; background: var(--bg); color: var(--ink); border: 2px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; transition: border-color .12s, transform .12s;
+}
+.level:hover { border-color: var(--uniform); transform: translateY(-2px); }
+.level:focus-visible { outline: 3px solid var(--uniform); outline-offset: 2px; }
+.level .lt { font-family: var(--display); font-weight: 700; font-size: 24px; text-transform: uppercase; line-height: 1; color: var(--uniform); }
+.level .ld { font-size: 14px; color: var(--muted); }
+.level .lb { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; color: var(--gold); margin-top: 4px; }
+.keys { font-size: 13.5px; color: var(--muted); }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg); color: var(--ink); }
+
+/* Útlevél-kártya */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; position: relative; }
+.card-top { background: var(--uniform); color: var(--panel); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 18px; flex-wrap: wrap; }
+.card-top .t { font-family: var(--display); font-size: 20px; letter-spacing: .06em; text-transform: uppercase; }
+.card-top .n { font-family: var(--mono); font-size: 12px; opacity: .85; }
+.card-body { display: grid; grid-template-columns: 112px 1fr; gap: 20px; padding: 20px 18px 22px; }
+.photo { width: 112px; height: 136px; border-radius: 8px; background: var(--uniform-soft); display: grid; place-items: center; border: 1px solid var(--line); color: var(--uniform); }
+.photo svg { width: 70px; height: 70px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; min-width: 0; }
+.f { display: flex; flex-direction: column; min-width: 0; }
+.f label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.f div { font-weight: 600; font-size: 17px; }
+.f.wide { grid-column: 1 / -1; }
+.bag { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.item { border: 1px dashed var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 15px; font-weight: 600; background: var(--bg); }
+.quote { font-style: italic; color: var(--muted); font-size: 15px; }
+
+.stampmark {
+  position: absolute; right: 22px; bottom: 22px; font-family: var(--display); font-weight: 700; font-size: 34px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 4px 14px; border: 4px solid currentColor; border-radius: 8px; transform: rotate(-12deg) scale(1);
+  opacity: .9; pointer-events: none;
+}
+.stampmark.ok { color: var(--go); }
+.stampmark.bad { color: var(--stop); }
+.stampmark.anim { animation: stamp .35s cubic-bezier(.2,1.6,.4,1); }
+@keyframes stamp { from { transform: rotate(-12deg) scale(2.2); opacity: 0; } to { transform: rotate(-12deg) scale(1); opacity: .9; } }
+
+/* Folyosótáblák */
+.lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lane {
+  font: inherit; cursor: pointer; border: 0; border-radius: 10px; color: var(--sign-ink); padding: 16px 18px; text-align: left;
+  display: flex; flex-direction: column; gap: 2px; box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); transition: transform .12s, filter .12s;
+}
+.lane:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.06); }
+.lane:active:not(:disabled) { transform: translateY(1px); }
+.lane:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.lane:disabled { cursor: default; opacity: .45; }
+.lane.go { background: var(--go); }
+.lane.stop { background: var(--stop); }
+.lane .big { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: .04em; text-transform: uppercase; line-height: 1; }
+.lane .small { font-size: 14px; opacity: .92; }
+.lane .en { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; opacity: .75; text-transform: uppercase; }
+
+.verdict { border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); background: var(--panel); }
+.verdict.ok { border-color: var(--go); background: var(--go-soft); }
+.verdict.bad { border-color: var(--stop); background: var(--stop-soft); }
+.verdict h2 { margin: 0; font-family: var(--display); font-size: 26px; text-transform: uppercase; letter-spacing: .03em; }
+.verdict p { margin: 0; }
+.verdict .src { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.verdict .pts { font-family: var(--mono); font-size: 13px; color: var(--gold); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { font: inherit; font-weight: 600; font-size: 16px; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid var(--uniform); }
+.btn.primary { background: var(--uniform); color: var(--panel); }
+.btn.ghost { background: transparent; color: var(--uniform); }
+.btn:focus-visible { outline: 3px solid var(--uniform); outline-offset: 2px; }
+
+details.rules { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+details.rules summary { cursor: pointer; padding: 14px 18px; font-family: var(--display); font-size: 20px; letter-spacing: .04em; text-transform: uppercase; color: var(--uniform); }
+details.rules summary:focus-visible { outline: 3px solid var(--uniform); outline-offset: 2px; }
+details.rules.locked summary { cursor: not-allowed; color: var(--muted); }
+.rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; padding: 0 18px 18px; font-size: 14.5px; }
+.rules-grid h3 { margin: 0 0 4px; font-size: 13px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.rules-grid ul { margin: 0; padding-left: 18px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 14px; width: 100%; }
+td, th { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; font-variant-numeric: tabular-nums; }
+th { font-weight: 600; }
+
+.end { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 26px 22px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.end .rank { font-family: var(--display); font-size: clamp(34px, 7vw, 48px); line-height: 1; text-transform: uppercase; color: var(--uniform); margin: 0; }
+.end .badge { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.end .record { font-weight: 700; color: var(--gold); }
+.end p { margin: 0; max-width: 60ch; }
+.mistakes { margin: 0; padding-left: 18px; font-size: 15px; display: flex; flex-direction: column; gap: 6px; }
+footer { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 600px) {
+  .card-body { grid-template-columns: 1fr; }
+  .photo { width: 84px; height: 100px; }
+  .photo svg { width: 52px; height: 52px; }
+  .lanes { grid-template-columns: 1fr; }
+  .levels { grid-template-columns: 1fr; }
+  .rules-grid { grid-template-columns: 1fr; }
+  .stampmark { font-size: 26px; right: 14px; bottom: 14px; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .stampmark.anim { animation: none; } .lane, .level, .progress > span { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="eyebrow">Az utasokra vonatkozó vámszabályok alapján</span>
+      <h1>Határállomás</h1>
+      <p class="sub">Pénzügyőr vagy. Nézd meg az utas adatait és poggyászát, és döntsd el: mehet ellenőrzés nélkül, vagy ellenőrzésre küldöd?</p>
+    </div>
+    <div class="stats" id="stats" aria-live="polite" hidden>
+      <div class="stat"><b id="sScore">0</b><span>Pont</span></div>
+      <div class="stat"><b id="sRound">1/12</b><span>Utas</span></div>
+      <div class="stat"><b id="sStreak">0</b><span>Sorozat</span></div>
+      <div class="stat" id="sTimeBox"><b id="sTime">20</b><span>Idő</span></div>
+    </div>
+  </header>
+  <div class="toolbar">
+    <button class="chip" id="btnSound" type="button" aria-pressed="true">Hang: be</button>
+    <button class="chip" id="btnQuit" type="button" hidden>Kilépés a menübe</button>
+  </div>
+
+  <!-- Kezdőképernyő: nehézségi szint választása -->
+  <section class="intro" id="intro">
+    <h2>Válassz szolgálati beosztást</h2>
+    <p>Minden műszakban véletlenszerű utasok érkeznek. A gyors és hibátlan döntésekért pluszpont jár, a jó válaszok sorozata pedig szorzót ad.</p>
+    <div class="levels" id="levels"></div>
+    <p class="keys">Billentyűk: <kbd>N</kbd> vagy <kbd>←</kbd> nincs ellenőrzés, <kbd>E</kbd> vagy <kbd>→</kbd> ellenőrzés, <kbd>Enter</kbd> következő utas.</p>
+  </section>
+
+  <main id="game" hidden>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="progress" aria-hidden="true"><span id="prog"></span></div>
+      <article class="card" id="card" aria-live="polite">
+        <div class="card-top"><span class="t" id="cTitle">Utas</span><span class="n" id="cNo">HU-0001</span></div>
+        <div class="card-body">
+          <div class="photo" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="22" r="12" fill="currentColor" opacity=".55"/><path d="M8 60c2-14 12-22 24-22s22 8 24 22" fill="currentColor" opacity=".55"/></svg></div>
+          <div class="fields">
+            <div class="f"><label>Név</label><div id="fName"></div></div>
+            <div class="f"><label>Életkor</label><div id="fAge"></div></div>
+            <div class="f"><label>Honnan érkezik</label><div id="fFrom"></div></div>
+            <div class="f"><label>Közlekedés</label><div id="fVia"></div></div>
+            <div class="f wide"><label>Poggyász</label><div class="bag" id="fBag"></div></div>
+            <div class="f wide"><label>Az utas szerint</label><div class="quote" id="fSay"></div></div>
+          </div>
+        </div>
+        <div class="stampmark" id="stamp" hidden></div>
+      </article>
+      <div class="timebar" id="timebar" aria-hidden="true"><span id="timefill"></span></div>
+
+      <div class="lanes" id="lanes">
+        <button class="lane go" id="btnGo" type="button">
+          <span class="big">Nincs ellenőrzés</span>
+          <span class="small">Mehet: minden vám- és adómentes, engedély nem kell</span>
+          <span class="en">Nothing to declare</span>
+        </button>
+        <button class="lane stop" id="btnStop" type="button">
+          <span class="big">Ellenőrzés</span>
+          <span class="small">Vámvizsgálat: vámköteles, engedély vagy bejelentés kell</span>
+          <span class="en">Goods to declare</span>
+        </button>
+      </div>
+
+      <section class="verdict" id="verdict" hidden>
+        <h2 id="vTitle"></h2>
+        <p id="vText"></p>
+        <span class="src" id="vSrc"></span>
+        <span class="pts" id="vPts"></span>
+        <div class="row"><button class="btn primary" id="btnNext" type="button">Következő utas</button></div>
+      </section>
+    </div>
+  </main>
+
+  <section class="end" id="end" hidden>
+    <span class="badge" id="eBadge"></span>
+    <p class="rank" id="eRank"></p>
+    <p id="eText"></p>
+    <p class="record" id="eRecord" hidden></p>
+    <ul class="mistakes" id="eMistakes"></ul>
+    <div class="row">
+      <button class="btn primary" id="btnAgain" type="button">Új műszak</button>
+      <button class="btn ghost" id="btnMenu" type="button">Másik beosztás</button>
+    </div>
+  </section>
+
+  <details class="rules" id="rules">
+    <summary id="rulesSum">Utasforgalmi törvény</summary>
+    <div class="rules-grid">
+      <div>
+        <h3>Harmadik országból, vám- és adómentesen</h3>
+        <ul>
+          <li>Egyéb áru: <b>430 €</b> légi úton, <b>300 €</b> egyébként</li>
+          <li>15 év alatt: <b>150 €</b>, utazási módtól függetlenül</li>
+          <li>Alkohol és dohány csak <b>17 éves kortól</b></li>
+          <li>Az Egyesült Királyság (Észak-Írország kivételével) harmadik ország</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Alkohol</h3>
+        <ul>
+          <li>4 l csendes bor <b>és</b> 16 l sör</li>
+          <li>+ 1 l 22% feletti ital <b>vagy</b> 2 l 22% alatti / pezsgő</li>
+          <li>Az utóbbi kettő részarányosan kombinálható, összesen legfeljebb 100%</li>
+        </ul>
+      </div>
+      <div class="tbl">
+        <h3>Dohány</h3>
+        <table>
+          <tr><th></th><th>Légi</th><th>Nem légi</th></tr>
+          <tr><td>Cigaretta</td><td>200 db</td><td>40 db</td></tr>
+          <tr><td>Szivarka</td><td>100 db</td><td>20 db</td></tr>
+          <tr><td>Szivar</td><td>50 db</td><td>10 db</td></tr>
+          <tr><td>Fogy. dohány</td><td>250 g</td><td>50 g</td></tr>
+        </table>
+        <p style="margin:6px 0 0;font-size:13.5px">Több fajta együtt is jöhet, ha a részarányok összege legfeljebb 100%.</p>
+      </div>
+      <div>
+        <h3>Különleges esetek</h3>
+        <ul>
+          <li>Hús-, tej- és tejtermék harmadik országból: tilos</li>
+          <li>Gyümölcs, zöldség: 5 kg vagy 1 db/fő; élő növény, mag: tilos</li>
+          <li>Készpénz <b>10 000 €</b>-tól: kötelező nyilatkozat</li>
+          <li>Kanna üzemanyag: legfeljebb <b>10 l</b> járművenként</li>
+          <li>Kutya, macska: mikrochip, oltás, állatútlevél</li>
+          <li>CITES-termék (teknőspáncél, korall, orchidea): engedély</li>
+          <li>Gyógyszer: orvosi igazolással legfeljebb 90 napra</li>
+          <li>EU-n belül nincs vám; jövedéki termék saját célra (irányszám: 800 cigaretta, 10 l tömény)</li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+  <footer>Minden eset a NAV 2026-os Utastájékoztatójának egy-egy szabályára épül. Ez egy független oktatójáték, nem a NAV hivatalos alkalmazása. A valódi utazás előtt mindig a hatályos szabályokat nézd meg: nav.gov.hu, 1819.</footer>
+</div>
+
+<script>
+const POOL = [
+  { name: "Kovács Eszter", age: 34, from: "Isztambul, Törökország", via: "Repülő", bag: ["200 db cigaretta", "1 l whisky (40%)"], say: "Mindkettő a vámmentes boltból van.", ans: "go",
+    why: "Légi utasként 200 cigaretta és 1 liter 22% feletti ital is vámmentes. A dohány és az alkohol külön kategória, mindkettő saját keretének 100%-át használja ki.", src: "Utastájékoztató II.1–2." },
+  { name: "Nagy Bence", age: 27, from: "Szabadka, Szerbia", via: "Személyautó", bag: ["1 karton cigaretta (200 db)"], say: "Otthon olcsóbb, magamnak hoztam.", ans: "stop",
+    why: "Nem légi úton csak 40 cigaretta hozható be vámmentesen. A 200 darab ennek ötszöröse.", src: "Utastájékoztató II.2." },
+  { name: "Szabó Márton", age: 45, from: "Belgrád, Szerbia", via: "Busz", bag: ["20 db cigaretta", "5 db szivar"], say: "Egy kis ez, egy kis az.", ans: "go",
+    why: "A 20 cigaretta a nem légi keret 50%-a, az 5 szivar a 10 darabos keret 50%-a. Együtt pontosan 100%, így vámmentes.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Tóth Lili", age: 16, from: "Dubaj, EAE", via: "Repülő", bag: ["1 doboz cigaretta (20 db)"], say: "Csak egy doboz, nem nagy ügy.", ans: "stop",
+    why: "Dohányterméket és alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.2." },
+  { name: "Horváth Dávid", age: 38, from: "New York, USA", via: "Repülő", bag: ["Okostelefon, 400 € (ajándék)"], say: "A húgomnak lesz szülinapjára.", ans: "go",
+    why: "Légi úton 430 euró értékhatárig hozható be áru vám- és adómentesen, ha alkalmi, személyes vagy ajándék célú.", src: "Utastájékoztató II.3." },
+  { name: "Varga Anna", age: 29, from: "Ungvár, Ukrajna", via: "Busz", bag: ["Télikabát, 350 €"], say: "Leárazáson vettem, magamnak.", ans: "stop",
+    why: "Nem légi úton az értékhatár 300 euró. A 350 eurós kabát ezt meghaladja, ezért vámköteles.", src: "Utastájékoztató II.3." },
+  { name: "Kiss Benedek", age: 14, from: "London, Egyesült Királyság", via: "Repülő", bag: ["Fülhallgató, 200 €"], say: "A zsebpénzemből vettem!", ans: "stop",
+    why: "15 év alatti utas csak 150 euró értékig hozhat be árut vámmentesen, utazási módtól függetlenül. Az Egyesült Királyság harmadik országnak számít.", src: "Utastájékoztató II. és II.3." },
+  { name: "Molnár Gábor", age: 52, from: "Bécs, Ausztria", via: "Vonat", bag: ["3 üveg pálinka", "2 karton cigaretta (400 db)"], say: "Saját fogyasztásra, a nyaralásról.", ans: "go",
+    why: "Az EU-n belül nincs vámeljárás. Saját felhasználásra szállított jövedéki termék nem adóköteles; a 400 cigaretta és 3 üveg pálinka a 800 darabos és 10 literes irányszám alatt van.", src: "Utastájékoztató I. és III.9." },
+  { name: "Farkas Zoltán", age: 61, from: "Zombor, Szerbia", via: "Személyautó", bag: ["Házi kolbász", "Juhsajt"], say: "A rokonoktól kaptam.", ans: "stop",
+    why: "Harmadik országból hús- és tejtartalmú élelmiszer behozatala állategészségügyi okból szigorúan korlátozott. A vámhatóság visszatarthatja és megsemmisítheti.", src: "Utastájékoztató III.1." },
+  { name: "Papp Réka", age: 31, from: "Antalya, Törökország", via: "Repülő", bag: ["3 kg mandarin"], say: "Útravalónak vettem.", ans: "go",
+    why: "Személyes fogyasztásra kis mennyiségű gyümölcs behozható: legfeljebb 5 kg vagy 1 darab fejenként.", src: "Utastájékoztató III.8." },
+  { name: "Lakatos Petra", age: 26, from: "Bangkok, Thaiföld", via: "Repülő", bag: ["2 cserép élő orchidea"], say: "Olyan szépek voltak a piacon!", ans: "stop",
+    why: "Élő növény még kis mennyiségben sem hozható be növényegészségügyi bizonyítvány nélkül, és az orchideák CITES-engedélyhez is kötöttek lehetnek.", src: "Utastájékoztató III.6. és III.8." },
+  { name: "Simon Ákos", age: 40, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["Szárított tengeri csillag", "Teknőspáncél dísz"], say: "Szuvenírek a strandról.", ans: "stop",
+    why: "A teknőspáncél és a tengeri csillag CITES-hatálya alá tartozhat. Engedély nélküli behozatala bírsággal vagy akár 3 év szabadságvesztéssel járhat.", src: "Utastájékoztató III.6." },
+  { name: "Balogh Emese", age: 48, from: "Sanghaj, Kína", via: "Repülő", bag: ["Készpénz: 12 000 €"], say: "Lakásvásárlásra hozom haza.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól vagy azzal egyenértékű összegtől a készpénzről nyilatkozni kell a vámhatóságnak.", src: "Utastájékoztató IV." },
+  { name: "Rácz Norbert", age: 36, from: "Toronto, Kanada", via: "Repülő", bag: ["Készpénz: 9 500 €"], say: "Ennyi maradt a kinti munkából.", ans: "go",
+    why: "A készpénz-nyilatkozati kötelezettség 10 000 eurótól áll fenn; 9 500 euróért nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Fekete Júlia", age: 33, from: "Újvidék, Szerbia", via: "Személyautó", bag: ["Kutya: mikrochip, oltások, állatútlevél"], say: "Bodri mindenhová jön velünk.", ans: "go",
+    why: "Harmadik országból érkező kutya akkor léphet be, ha egyedi azonosítóval, a szükséges oltásokkal és állatútlevéllel vagy állategészségügyi bizonyítvánnyal rendelkezik.", src: "Utastájékoztató III.3.1." },
+  { name: "Oláh Tamás", age: 44, from: "Csap, Ukrajna", via: "Személyautó", bag: ["Teli tank", "20 l benzin kannában"], say: "Ott fele annyiba kerül.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, de hordozható tartályban járművenként legfeljebb 10 liter hozható be.", src: "Utastájékoztató II.4." },
+  { name: "Mészáros Ilona", age: 67, from: "Chicago, USA", via: "Repülő", bag: ["Vérnyomás-gyógyszer 60 napra", "Orvosi igazolás"], say: "A kezelőorvosom írta fel.", ans: "go",
+    why: "Folyamatos kezelés esetén a kezelőorvos által előírt gyógyszer orvosi igazolással legfeljebb 90 napra elegendő mennyiségben behozható.", src: "Utastájékoztató III.2." },
+  { name: "Juhász Áron", age: 39, from: "Pozsony, Szlovákia", via: "Kisbusz", bag: ["5 karton cigaretta (1000 db)"], say: "Mind a saját fogyasztásom.", ans: "stop",
+    why: "Az EU-n belül saját felhasználásra nem adóköteles a jövedéki termék, de 800 cigaretta felett a NAV vizsgálja, nem kereskedelmi célú-e a szállítás.", src: "Utastájékoztató III.9." },
+  { name: "Takács Noémi", age: 30, from: "Manchester, Egyesült Királyság", via: "Repülő", bag: ["16 l sör", "4 l csendes bor"], say: "Egy kis angol sör a buliba.", ans: "go",
+    why: "Harmadik országból 4 liter csendes bor és 16 liter sör is behozható vámmentesen, ráadásul a két mennyiség egymás mellett is jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Bíró Csaba", age: 55, from: "Isztambul, Törökország", via: "Repülő", bag: ["2 l rakı (45%)"], say: "Két üveg, egy nekem, egy a szomszédnak.", ans: "stop",
+    why: "22% feletti alkoholtartalmú italból csak 1 liter hozható be vámmentesen. A 2 liter a keret kétszerese.", src: "Utastájékoztató II.1." },
+  // Új utasok
+  { name: "Halász Vilma", age: 42, from: "Szarajevó, Bosznia-Hercegovina", via: "Busz", bag: ["0,5 l szilvapálinka (40%)", "1 l meggylikőr (18%)"], say: "Egy kis kóstoló a családnak.", ans: "go",
+    why: "A fél liter tömény az 1 literes keret 50%-a, az 1 liter 22% alatti likőr a 2 literes keret 50%-a. Együtt pontosan 100%, így vámmentes.", src: "Utastájékoztató II.1. (részarány-szabály)" },
+  { name: "Gulyás Ferenc", age: 58, from: "Tel-Aviv, Izrael", via: "Repülő", bag: ["1 l vodka (40%)", "2 l pezsgő"], say: "Az egyik a vacsorához, a másik a koccintáshoz.", ans: "stop",
+    why: "A tömény ital és a pezsgő ugyanazt a keretet osztja meg: az 1 liter vodka 100%, a 2 liter pezsgő újabb 100%. Együtt 200%, ami a keret kétszerese.", src: "Utastájékoztató II.1." },
+  { name: "Antal Kinga", age: 35, from: "Doha, Katar", via: "Repülő", bag: ["100 db cigaretta", "25 db szivar"], say: "A férjemnek viszem ajándékba.", ans: "go",
+    why: "Légi úton a 100 cigaretta a 200-as keret 50%-a, a 25 szivar az 50-es keret 50%-a. A részarányok összege 100%, tehát vámmentes.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Pásztor Imre", age: 49, from: "Szabadka, Szerbia", via: "Személyautó", bag: ["40 db cigaretta", "50 g fogyasztási dohány"], say: "Ennyi kell egy hétre.", ans: "stop",
+    why: "Nem légi úton a 40 cigaretta már önmagában a keret 100%-a, az 50 g dohány pedig újabb 100%. Együtt 200%, ez túllépi a vámmentes mennyiséget.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Vincze Panna", age: 13, from: "Kijev, Ukrajna", via: "Busz", bag: ["Társasjáték, 120 €"], say: "A nagymamától kaptam.", ans: "go",
+    why: "15 év alatti utas 150 euró értékig hozhat be árut vám- és adómentesen, utazási módtól függetlenül. A 120 eurós játék ez alatt van.", src: "Utastájékoztató II.3." },
+  { name: "Kocsis Bálint", age: 23, from: "Isztambul, Törökország", via: "Repülő", bag: ["Laptop, 650 €"], say: "Kint sokkal olcsóbb volt.", ans: "stop",
+    why: "Légi úton 430 euró az értékhatár. A 650 eurós laptop ezt meghaladja, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Erdős Kata", age: 37, from: "Podgorica, Montenegró", via: "Személyautó", bag: ["Napszemüveg, 180 €", "Sportcipő, 90 €"], say: "Nyári vásárlás.", ans: "go",
+    why: "Nem légi úton 300 euró az értékhatár. A két termék együtt 270 euró, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Sipos Levente", age: 41, from: "Ungvár, Ukrajna", via: "Személyautó", bag: ["10 l benzin kannában"], say: "Biztonsági tartalék.", ans: "go",
+    why: "Hordozható tartályban járművenként legfeljebb 10 liter üzemanyag hozható be vámmentesen. A 10 liter pont a határ.", src: "Utastájékoztató II.4." },
+  { name: "Dobos Enikő", age: 50, from: "Dubaj, EAE", via: "Repülő", bag: ["Készpénz: 10 000 €"], say: "Kerek összeg, semmi különös.", ans: "stop",
+    why: "A nyilatkozati kötelezettség 10 000 eurótól áll fenn, tehát pontosan 10 000 eurónál már nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Bakos Edit", age: 72, from: "Los Angeles, USA", via: "Repülő", bag: ["Szívgyógyszer 120 napra", "Orvosi igazolás"], say: "Hosszabb időre jöttem haza.", ans: "stop",
+    why: "Orvosi igazolással is legfeljebb 90 napra elegendő gyógyszer hozható be. A 120 napos mennyiség ezt meghaladja.", src: "Utastájékoztató III.2." },
+  { name: "Németh Zsófia", age: 28, from: "Belgrád, Szerbia", via: "Vonat", bag: ["Macska, mikrochippel, állatútlevél nélkül"], say: "Az útlevelét otthon felejtettük.", ans: "stop",
+    why: "Kutya és macska csak egyedi azonosítóval, a szükséges oltásokkal és állatútlevéllel vagy állategészségügyi bizonyítvánnyal léphet be.", src: "Utastájékoztató III.3.1." },
+  { name: "Szűcs Gergely", age: 33, from: "Lima, Peru", via: "Repülő", bag: ["Egy zacskó kukoricavetőmag"], say: "Ki akarom próbálni a kertben.", ans: "stop",
+    why: "Harmadik országból élő növény és vetőmag növényegészségügyi bizonyítvány nélkül nem hozható be, még kis mennyiségben sem.", src: "Utastájékoztató III.8." },
+  { name: "Orosz Hajnalka", age: 46, from: "Kairó, Egyiptom", via: "Repülő", bag: ["7 kg narancs"], say: "Ott olyan finom!", ans: "stop",
+    why: "Gyümölcsből személyes fogyasztásra legfeljebb 5 kg hozható be. A 7 kg ezt túllépi.", src: "Utastájékoztató III.8." },
+  { name: "Lukács Bálint", age: 31, from: "Bologna, Olaszország", via: "Repülő", bag: ["1 kg parmezán", "Prosciutto"], say: "Olasz vacsorát főzünk.", ans: "go",
+    why: "A hús- és tejtermékekre vonatkozó tilalom harmadik országokra szól. Olaszország EU-tagállam, az EU-n belül nincs vámeljárás.", src: "Utastájékoztató I. és III.1." },
+  { name: "Katona Rita", age: 17, from: "Edinburgh, Egyesült Királyság", via: "Repülő", bag: ["1 l whisky (40%)"], say: "Apának viszem, de nekem is szabad!", ans: "go",
+    why: "Alkoholt a 17. életévét betöltött utas már hozhat be. A 17 éves utasnál az 1 liter 22% feletti ital belefér a keretbe.", src: "Utastájékoztató II.1." },
+  { name: "Boros Attila", age: 54, from: "Sarm es-Sejk, Egyiptom", via: "Repülő", bag: ["Szárított korallág"], say: "Csak egy kis darab a tengerpartról.", ans: "stop",
+    why: "A korall CITES-hatálya alá tartozik, behozatalához engedély kell. Engedély nélkül lefoglalják, és bírsággal is járhat.", src: "Utastájékoztató III.6." },
+  { name: "Fazekas Dóra", age: 39, from: "Niš, Szerbia", via: "Busz", bag: ["20 db szivarka"], say: "Csak egy doboz.", ans: "go",
+    why: "Nem légi úton 20 szivarka hozható be vámmentesen. A 20 darab pontosan a keret 100%-a.", src: "Utastájékoztató II.2." },
+  { name: "Csonka Péter", age: 47, from: "Belgrád, Szerbia", via: "Személyautó", bag: ["250 g fogyasztási dohány"], say: "Ezt a fajtát itthon nem kapni.", ans: "stop",
+    why: "Fogyasztási dohányból légi úton 250 g, de más módon csak 50 g hozható be vámmentesen. Autóval érkezett, így ötszörös a túllépés.", src: "Utastájékoztató II.2." },
+  // Értékhatárok
+  { name: "Somogyi Lőrinc", age: 44, from: "Zürich, Svájc", via: "Repülő", bag: ["Karóra, 420 €"], say: "Egy életem, egy órám.", ans: "go",
+    why: "Svájc nem EU-tagállam, de légi úton 430 euróig hozható be áru vám- és adómentesen. A 420 eurós óra belefér.", src: "Utastájékoztató II.3." },
+  { name: "Hegedűs Zita", age: 32, from: "Oslo, Norvégia", via: "Repülő", bag: ["Gyapjúdzseki, 450 €"], say: "Ott ez a minimum a hidegben.", ans: "stop",
+    why: "Norvégia harmadik ország. Légi úton 430 euró az értékhatár, a 450 eurós dzseki ezt túllépi.", src: "Utastájékoztató II.3." },
+  { name: "Kardos Milán", age: 26, from: "Nagykikinda, Szerbia", via: "Személyautó", bag: ["Tablet, 310 €"], say: "Akciós volt, nem hagyhattam ott.", ans: "stop",
+    why: "Nem légi úton 300 euró az értékhatár. A 310 eurós tablet már 10 euróval is túllépi.", src: "Utastájékoztató II.3." },
+  { name: "Benkő Irén", age: 63, from: "Belgrád, Szerbia", via: "Vonat", bag: ["Könyvek, összesen 250 €"], say: "Szerb klasszikusok, régi kiadások.", ans: "go",
+    why: "Nem légi úton 300 euróig hozható be áru vámmentesen. A 250 euró értékű könyvcsomag belefér.", src: "Utastájékoztató II.3." },
+  { name: "Ádám Zalán", age: 12, from: "Tokió, Japán", via: "Repülő", bag: ["Játékkonzol, 300 €"], say: "Egész évben erre gyűjtöttem.", ans: "stop",
+    why: "15 év alatti utas csak 150 euró értékig hozhat be árut vámmentesen, akkor is, ha repülővel érkezik.", src: "Utastájékoztató II.3." },
+  { name: "Major Lilla", age: 10, from: "Budva, Montenegró", via: "Személyautó", bag: ["Plüssdelfin, 60 €"], say: "Ő Bubu, velem alszik!", ans: "go",
+    why: "15 év alatt 150 euró a határ. A 60 eurós játék bőven belefér.", src: "Utastájékoztató II.3." },
+  { name: "Szekeres Bianka", age: 14, from: "Dubaj, EAE", via: "Repülő", bag: ["Parfüm, 140 €"], say: "Anyától kaptam a születésnapomra.", ans: "go",
+    why: "15 év alatti utasnál 150 euró az értékhatár. A 140 eurós parfüm alatta marad.", src: "Utastájékoztató II.3." },
+  { name: "Jakab Nóra", age: 29, from: "Szöul, Dél-Korea", via: "Repülő", bag: ["Kozmetikumok, 200 €", "Ruhák, 200 €"], say: "Koreai bőrápolás, mindenki ezt kéri.", ans: "go",
+    why: "Légi úton összesen 430 euróig vámmentes az áru. A két tétel együtt 400 euró, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Fülöp Gréta", age: 41, from: "Bangkok, Thaiföld", via: "Repülő", bag: ["Aranygyűrű, 500 €"], say: "Eljegyzési gyűrű, magamnak vettem.", ans: "stop",
+    why: "Légi úton 430 euró az értékhatár. Az 500 eurós gyűrű ezt meghaladja.", src: "Utastájékoztató II.3." },
+  { name: "Vass Olivér", age: 35, from: "Szkopje, Észak-Macedónia", via: "Busz", bag: ["Bőrtáska, 160 €", "Cipő, 160 €"], say: "Külön-külön egyik sem drága.", ans: "stop",
+    why: "Az értékhatár az összes árura együtt vonatkozik. Nem légi úton 300 euró, a két tétel együtt 320 euró.", src: "Utastájékoztató II.3." },
+  { name: "Pintér Gábor", age: 46, from: "München, Németország", via: "Személyautó", bag: ["Televízió, 900 €"], say: "Kint olcsóbb volt, mint itthon.", ans: "go",
+    why: "Németország EU-tagállam, az EU-n belül nincs vámeljárás és értékhatár. A tévé szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Mohácsi Andrea", age: 38, from: "Barcelona, Spanyolország", via: "Repülő", bag: ["Két márkás táska, 1 200 €"], say: "Végre kiengedtem a fáradt gőzt.", ans: "go",
+    why: "Az EU-n belüli utazásnál nincs vám- és értékhatár, hiába érkezik repülővel.", src: "Utastájékoztató I." },
+  { name: "Tamási Bence", age: 15, from: "Boston, USA", via: "Repülő", bag: ["Kosárlabdás cipő, 420 €"], say: "Most lettem 15, nem vagyok már gyerek!", ans: "go",
+    why: "A 150 eurós határ csak a 15 év alattiakra vonatkozik. A 15 éves utasra már a légi 430 eurós értékhatár érvényes.", src: "Utastájékoztató II.3." },
+  { name: "Ambrus Klára", age: 50, from: "London, Egyesült Királyság", via: "Repülő", bag: ["Esőkabát és csizma, 480 €"], say: "Angliában ez a túlélőcsomag.", ans: "stop",
+    why: "Az Egyesült Királyság harmadik ország. Légi úton 430 euró az értékhatár, a 480 euró ezt túllépi.", src: "Utastájékoztató II. és II.3." },
+  { name: "Gáspár Roland", age: 35, from: "Mostar, Bosznia-Hercegovina", via: "Személyautó", bag: ["Rézkávéskészlet, 290 €"], say: "Kézműves munka, a bazárból.", ans: "go",
+    why: "Nem légi úton 300 euróig hozható be áru vámmentesen. A 290 eurós készlet éppen belefér.", src: "Utastájékoztató II.3." },
+  // Alkohol
+  { name: "Kun Sándor", age: 40, from: "Versec, Szerbia", via: "Személyautó", bag: ["4 l csendes bor", "16 l sör"], say: "Szüreti mulatságra visszük.", ans: "go",
+    why: "Az alkohol kerete nem függ az utazás módjától. A 4 liter bor és a 16 liter sör egymás mellett is vámmentes.", src: "Utastájékoztató II.1." },
+  { name: "Medve Judit", age: 57, from: "Beregszász, Ukrajna", via: "Busz", bag: ["6 l házi bor"], say: "A nagybácsi pincéjéből.", ans: "stop",
+    why: "Csendes borból 4 liter hozható be vámmentesen harmadik országból. A 6 liter ezt túllépi.", src: "Utastájékoztató II.1." },
+  { name: "Rigó Kristóf", age: 33, from: "Denver, USA", via: "Repülő", bag: ["20 l kézműves sör"], say: "Ilyet itthon nem kapni.", ans: "stop",
+    why: "Sörből 16 liter hozható be vámmentesen. A 20 liter ezt meghaladja.", src: "Utastájékoztató II.1." },
+  { name: "Sárközi Eszter", age: 44, from: "Tbiliszi, Grúzia", via: "Repülő", bag: ["3 l grúz bor", "1 l csacsa (50%)"], say: "Grúz vendégszeretet palackban.", ans: "go",
+    why: "A csendes bor külön, 4 literes keretbe tartozik, a tömény italból pedig 1 liter jöhet. Mindkettő a keretén belül van.", src: "Utastájékoztató II.1." },
+  { name: "Bozsó Ernő", age: 62, from: "Bar, Montenegró", via: "Személyautó", bag: ["1,5 l rakija (45%)"], say: "Másfél liter, az semmi.", ans: "stop",
+    why: "22% feletti italból csak 1 liter hozható be vámmentesen. Az 1,5 liter a keret 150%-a.", src: "Utastájékoztató II.1." },
+  { name: "Kelemen Lili", age: 31, from: "Cancún, Mexikó", via: "Repülő", bag: ["0,5 l tequila (38%)", "1 l pezsgő"], say: "Egy kis mexikói hangulat otthonra.", ans: "go",
+    why: "A fél liter tömény az 1 literes keret 50%-a, az 1 liter pezsgő a 2 literes keret 50%-a. Együtt 100%, ez belefér.", src: "Utastájékoztató II.1. (részarány-szabály)" },
+  { name: "Lengyel Tibor", age: 48, from: "Oszaka, Japán", via: "Repülő", bag: ["0,7 l japán whisky (43%)", "1 l szaké (15%)"], say: "Két japán különlegesség.", ans: "stop",
+    why: "A 0,7 liter whisky a tömény keret 70%-a, az 1 liter 22% alatti szaké a 2 literes keret 50%-a. Együtt 120%, ez túllépés.", src: "Utastájékoztató II.1. (részarány-szabály)" },
+  { name: "Csizmadia Réka", age: 16, from: "Szabadka, Szerbia", via: "Személyautó", bag: ["1 üveg bor (0,75 l)"], say: "Ajándék a tanárnőmnek.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, még ajándékba szánt egyetlen üveget sem.", src: "Utastájékoztató II.1." },
+  { name: "Mezei Dániel", age: 37, from: "Chișinău, Moldova", via: "Busz", bag: ["4 l csendes bor", "2 l pezsgő"], say: "A híres moldovai pincékből.", ans: "go",
+    why: "A csendes bornak saját, 4 literes kerete van, a pezsgő pedig a 2 literes 22% alatti keretbe tartozik. Mindkettő 100%-on áll, ez még vámmentes.", src: "Utastájékoztató II.1." },
+  { name: "Huszár Noémi", age: 52, from: "Isztambul, Törökország", via: "Repülő", bag: ["1 l whisky (40%)", "1 l likőr (20%)"], say: "Egyik nekem, másik a férjemnek.", ans: "stop",
+    why: "Az 1 liter whisky már önmagában kimeríti a keretet, az 1 liter likőr további 50%. Együtt 150%.", src: "Utastájékoztató II.1. (részarány-szabály)" },
+  { name: "Ferenczi Márk", age: 45, from: "Prága, Csehország", via: "Személyautó", bag: ["6 l rum"], say: "Céges karácsonyi bulira.", ans: "go",
+    why: "Csehország EU-tagállam. Saját felhasználásra a jövedéki termék nem adóköteles, és a 6 liter tömény a 10 literes irányszám alatt van.", src: "Utastájékoztató I. és III.9." },
+  { name: "Győri Kálmán", age: 59, from: "Bécs, Ausztria", via: "Személyautó", bag: ["12 l pálinka"], say: "Mind a saját fogyasztásom.", ans: "stop",
+    why: "Az EU-n belül saját célra nem adóköteles a tömény ital, de 10 liter felett a NAV vizsgálja, nem kereskedelmi célú-e a szállítás.", src: "Utastájékoztató III.9." },
+  // Dohány
+  { name: "Simó Ildikó", age: 30, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["200 db cigaretta"], say: "Pont egy karton, ennyi szabad.", ans: "go",
+    why: "Légi úton 200 cigaretta hozható be vámmentesen. Pontosan a keretnél van.", src: "Utastájékoztató II.2." },
+  { name: "Bodnár Vince", age: 42, from: "Antalya, Törökország", via: "Repülő", bag: ["250 db cigaretta"], say: "Csak fél dobozzal több.", ans: "stop",
+    why: "Légi úton 200 cigaretta a határ. A 250 darab ezt túllépi.", src: "Utastájékoztató II.2." },
+  { name: "Kántor Ágnes", age: 38, from: "Munkács, Ukrajna", via: "Személyautó", bag: ["20 db cigaretta"], say: "Egy doboz az útra.", ans: "go",
+    why: "Nem légi úton 40 cigaretta hozható be vámmentesen. A 20 darab ennek a fele.", src: "Utastájékoztató II.2." },
+  { name: "Zsigmond Ottó", age: 51, from: "Zombor, Szerbia", via: "Busz", bag: ["60 db cigaretta"], say: "Három doboz, nem a világ.", ans: "stop",
+    why: "Nem légi úton 40 cigaretta a határ, a 60 darab ezt túllépi.", src: "Utastájékoztató II.2." },
+  { name: "Halmi György", age: 66, from: "Havanna, Kuba", via: "Repülő", bag: ["50 db kubai szivar"], say: "Életem nagy vásárlása.", ans: "go",
+    why: "Légi úton 50 szivar hozható be vámmentesen. Pontosan a keretnél van.", src: "Utastájékoztató II.2." },
+  { name: "Berki Lajos", age: 55, from: "Újvidék, Szerbia", via: "Személyautó", bag: ["12 db szivar"], say: "Egy doboz, ünnepekre.", ans: "stop",
+    why: "Nem légi úton csak 10 szivar hozható be vámmentesen. A 12 darab túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Gombos Hanna", age: 34, from: "Abu-Dzabi, EAE", via: "Repülő", bag: ["100 db cigaretta", "125 g fogyasztási dohány"], say: "Egy kicsit ebből, egy kicsit abból.", ans: "go",
+    why: "Légi úton a 100 cigaretta a keret 50%-a, a 125 g dohány a 250 g-os keret 50%-a. Együtt 100%.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Dudás Kornél", age: 47, from: "Doha, Katar", via: "Repülő", bag: ["150 db cigaretta", "50 db szivarka"], say: "A szivarka nem is igazi dohány.", ans: "stop",
+    why: "A 150 cigaretta a légi keret 75%-a, az 50 szivarka a 100-as keret 50%-a. Együtt 125%, ez túllépés.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Mák Henrik", age: 60, from: "Niš, Szerbia", via: "Személyautó", bag: ["10 db szivarka", "5 db szivar"], say: "Vegyes válogatás.", ans: "go",
+    why: "Nem légi úton a 10 szivarka a 20-as keret 50%-a, az 5 szivar a 10-es keret 50%-a. Együtt 100%.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Tóth Kornélia", age: 43, from: "Lemberg, Ukrajna", via: "Vonat", bag: ["20 db cigaretta", "25 g fogyasztási dohány"], say: "Sodorni is szoktam.", ans: "go",
+    why: "Nem légi úton a 20 cigaretta a 40-es keret 50%-a, a 25 g dohány az 50 g-os keret 50%-a. Együtt 100%.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Szalai Máté", age: 16, from: "Isztambul, Törökország", via: "Repülő", bag: ["1 db szivar"], say: "Csak egy, emlékbe.", ans: "stop",
+    why: "Dohányterméket csak a 17. életévét betöltött utas hozhat be vámmentesen, egyetlen darabot sem.", src: "Utastájékoztató II.2." },
+  { name: "Fodor Rudolf", age: 50, from: "Kassa, Szlovákia", via: "Személyautó", bag: ["3 karton cigaretta (600 db)"], say: "Magamnak, egy hónapra.", ans: "go",
+    why: "Szlovákia EU-tagállam. Saját célra a jövedéki termék nem adóköteles, és a 600 cigaretta a 800-as irányszám alatt van.", src: "Utastájékoztató I. és III.9." },
+  // Élelmiszer és növények
+  { name: "Virág Margit", age: 70, from: "Topolya, Szerbia", via: "Személyautó", bag: ["2 kg alma"], say: "A saját fámról szedtem.", ans: "go",
+    why: "Gyümölcsből személyes fogyasztásra legfeljebb 5 kg hozható be. A 2 kg alma belefér.", src: "Utastájékoztató III.8." },
+  { name: "Polgár Erika", age: 54, from: "Huszt, Ukrajna", via: "Busz", bag: ["Házi tehéntúró"], say: "A szomszéd tehenétől, friss.", ans: "stop",
+    why: "Harmadik országból tej- és tejtermék behozatala állategészségügyi okból tilos, a házi túró is ide tartozik.", src: "Utastájékoztató III.1." },
+  { name: "Bencze Ábel", age: 39, from: "Isztambul, Törökország", via: "Repülő", bag: ["Vákuumcsomagolt szalámi a vámmentes boltból"], say: "Bolti, lezárt csomagolásban van!", ans: "stop",
+    why: "Harmadik országból húsárut a csomagolástól és a vásárlás helyétől függetlenül nem lehet behozni.", src: "Utastájékoztató III.1." },
+  { name: "Kovács Melinda", age: 36, from: "Chișinău, Moldova", via: "Busz", bag: ["4 kg szőlő"], say: "Moldovai csemegeszőlő.", ans: "go",
+    why: "Gyümölcsből legfeljebb 5 kg hozható be személyes fogyasztásra. A 4 kg szőlő belefér.", src: "Utastájékoztató III.8." },
+  { name: "Vörös Patrik", age: 42, from: "Madrid, Spanyolország", via: "Repülő", bag: ["Serrano sonka", "Manchego sajt"], say: "Tapasvacsorát rendezünk.", ans: "go",
+    why: "A hús- és tejtermékekre vonatkozó tilalom harmadik országokra szól. Spanyolország EU-tagállam.", src: "Utastájékoztató I. és III.1." },
+  { name: "Nyitrai Hédi", age: 58, from: "Hanoi, Vietnám", via: "Repülő", bag: ["Bonsai fa cserépben"], say: "Húsz éves fa, vigyázok rá.", ans: "stop",
+    why: "Élő növény harmadik országból növényegészségügyi bizonyítvány nélkül nem hozható be.", src: "Utastájékoztató III.8." },
+  { name: "Kerekes Csilla", age: 47, from: "Nairobi, Kenya", via: "Repülő", bag: ["Egzotikus virághagymák"], say: "Ilyen színű nálunk nincs is.", ans: "stop",
+    why: "A virághagyma is élő növényi szaporítóanyag, harmadik országból bizonyítvány nélkül nem hozható be.", src: "Utastájékoztató III.8." },
+  { name: "Lázár Iván", age: 34, from: "Batumi, Grúzia", via: "Repülő", bag: ["Szulguni sajt"], say: "Ebből lesz a hacsapuri.", ans: "stop",
+    why: "Harmadik országból tejtermék nem hozható be, a sajt is ide tartozik.", src: "Utastájékoztató III.1." },
+  { name: "Simon Laura", age: 27, from: "Kotor, Montenegró", via: "Személyautó", bag: ["1 kg friss füge"], say: "A szállás kertjéből.", ans: "go",
+    why: "Gyümölcsből 5 kg-ig hozható be személyes fogyasztásra, az 1 kg füge belefér.", src: "Utastájékoztató III.8." },
+  // Készpénz
+  { name: "Kállai Tímea", age: 45, from: "New York, USA", via: "Repülő", bag: ["Készpénz: 15 000 €"], say: "Az örökségem egy része.", ans: "stop",
+    why: "10 000 eurótól vagy azzal egyenértékű összegtől az EU külső határán nyilatkozni kell a készpénzről.", src: "Utastájékoztató IV." },
+  { name: "Forgács Endre", age: 53, from: "Szabadka, Szerbia", via: "Személyautó", bag: ["Készpénz: 8 000 €"], say: "Autót vennék belőle.", ans: "go",
+    why: "A nyilatkozati kötelezettség 10 000 eurótól áll fenn. A 8 000 euró ez alatt van.", src: "Utastájékoztató IV." },
+  { name: "Bartos Liliána", age: 39, from: "Kijev, Ukrajna", via: "Busz", bag: ["Készpénz: 10 500 €"], say: "A megtakarításaimat hozom biztonságba.", ans: "stop",
+    why: "10 000 eurótól kötelező a készpénz-nyilatkozat, a 10 500 euró ezt meghaladja.", src: "Utastájékoztató IV." },
+  // Üzemanyag
+  { name: "Pálfi Szilárd", age: 48, from: "Csap, Ukrajna", via: "Személyautó", bag: ["5 l benzin kannában"], say: "Csak a fűnyíróba.", ans: "go",
+    why: "Hordozható tartályban járművenként 10 liter üzemanyag hozható be vámmentesen. Az 5 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Récsei Bálint", age: 40, from: "Szabadka, Szerbia", via: "Kisbusz", bag: ["2 kanna gázolaj, egyenként 10 l"], say: "Kannánként csak 10 liter!", ans: "stop",
+    why: "A 10 literes határ járművenként érvényes, nem kannánként. A 20 liter a keret kétszerese.", src: "Utastájékoztató II.4." },
+  { name: "Takács Ernő", age: 57, from: "Beregszász, Ukrajna", via: "Személyautó", bag: ["Színültig tankolt autó"], say: "Ott olcsóbb, teletankoltam.", ans: "go",
+    why: "A jármű normál üzemanyagtartályában lévő üzemanyag vámmentesen behozható.", src: "Utastájékoztató II.4." },
+  // Állatok
+  { name: "Mátyás Anikó", age: 36, from: "Ankara, Törökország", via: "Repülő", bag: ["Macska: mikrochip, oltások, állatútlevél"], say: "Cirmi már sokat utazott.", ans: "go",
+    why: "Macska egyedi azonosítóval, a szükséges oltásokkal és állatútlevéllel vagy állategészségügyi bizonyítvánnyal beléphet.", src: "Utastájékoztató III.3.1." },
+  { name: "Bognár Zsolt", age: 44, from: "Ungvár, Ukrajna", via: "Személyautó", bag: ["Kutyakölyök, mikrochip nélkül"], say: "Az út szélén találtuk, megmentettük.", ans: "stop",
+    why: "Kutya csak egyedi azonosítóval (mikrochippel), oltásokkal és állatútlevéllel léphet be. Ennek hiányában a belépés nem engedélyezhető.", src: "Utastájékoztató III.3.1." },
+  { name: "Szendrei Luca", age: 25, from: "Marrákes, Marokkó", via: "Repülő", bag: ["Élő görög teknős egy dobozban"], say: "Olyan aranyos, nem hagyhattam ott.", ans: "stop",
+    why: "A szárazföldi teknősök CITES-védelem alatt állnak, élő példány engedély nélkül nem hozható be.", src: "Utastájékoztató III.6." },
+  // CITES és egyebek
+  { name: "Tóth Barnabás", age: 31, from: "Mexikóváros, Mexikó", via: "Repülő", bag: ["Kis kaktusz cserépben"], say: "Alig nagyobb a hüvelykujjamnál.", ans: "stop",
+    why: "Élő növény harmadik országból mérettől függetlenül nem hozható be bizonyítvány nélkül, és sok kaktuszfaj CITES-védett is.", src: "Utastájékoztató III.6. és III.8." },
+  { name: "Rákosi Henrietta", age: 49, from: "Mombasa, Kenya", via: "Repülő", bag: ["Elefántcsont karkötő"], say: "Antik darab, a piacon vettem.", ans: "stop",
+    why: "Az elefántcsont CITES-hatálya alá tartozik, engedély nélküli behozatala tilos, és súlyos bírsággal járhat.", src: "Utastájékoztató III.6." },
+  { name: "Kónya Vilmos", age: 43, from: "Phuket, Thaiföld", via: "Repülő", bag: ["Kígyóbőr táska"], say: "Valódi bőr, nem utánzat.", ans: "stop",
+    why: "A legtöbb kígyófaj bőre CITES-hatálya alá tartozik, a belőle készült termék engedély nélkül nem hozható be.", src: "Utastájékoztató III.6." },
+  // Gyógyszer
+  { name: "Erdélyi Margit", age: 68, from: "Montréal, Kanada", via: "Repülő", bag: ["Inzulin 30 napra", "Orvosi igazolás"], say: "Cukorbeteg vagyok, mindig nálam van.", ans: "go",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 30 napos mennyiség belefér.", src: "Utastájékoztató III.2." },
+  { name: "Szőke Benedek", age: 55, from: "Újdelhi, India", via: "Repülő", bag: ["Gyógyszer 100 napra", "Orvosi igazolás"], say: "Ott sokkal olcsóbb a gyógyszer.", ans: "stop",
+    why: "Orvosi igazolás mellett is legfeljebb 90 napra elegendő mennyiség hozható be. A 100 nap ezt meghaladja.", src: "Utastájékoztató III.2." },
+  // Generált esetek (a szabályok számaiból számolt válaszokkal)
+  { name: "Komlósi Dorina", age: 49, from: "Banja Luka, Bosznia-Hercegovina", via: "Motor", bag: ["Macska: mikrochip, állatútlevél"], say: "Ő is családtag.", ans: "stop",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: veszettség elleni oltás.", src: "Utastájékoztató III.3.1." },
+  { name: "Halmos Bence", age: 66, from: "Lemberg, Ukrajna", via: "Repülő", bag: ["Kerékpáros sisak, 120 €", "Ruhák, 210 €"], say: "Szülinapi meglepetés lesz.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 330 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Zentai Aladár", age: 8, from: "Colombo, Srí Lanka", via: "Repülő", bag: ["Sportcipő, 80 €"], say: "Akciós volt.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru értéke 80 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Rozs Edina", age: 40, from: "Szkopje, Észak-Macedónia", via: "Repülő", bag: ["Gyógyszer 60 napra", "Orvosi igazolás"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 60 napos mennyiség belefér.", src: "Utastájékoztató III.2." },
+  { name: "Fábián Lajos", age: 43, from: "Szkopje, Észak-Macedónia", via: "Busz", bag: ["75 g fogyasztási dohány"], say: "Csak a szokásos adagom.", ans: "stop",
+    why: "Nem légi úton 50 g fogyasztási dohány hozható be vámmentesen. A 75 g a keret 150%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Fenyő Kinga", age: 69, from: "Almati, Kazahsztán", via: "Repülő", bag: ["25 db szivar"], say: "A vámmentes boltban vettem.", ans: "go",
+    why: "Légi úton 50 db szivar hozható be vámmentesen. A 25 db a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Sáfrány Richárd", age: 68, from: "Munkács, Ukrajna", via: "Személyautó", bag: ["Teli tank", "20 l üzemanyag kannában"], say: "Tartaléknak.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 20 liter ezt túllépi.", src: "Utastájékoztató II.4." },
+  { name: "Gyenes Dénes", age: 69, from: "New York, USA", via: "Repülő", bag: ["Elektromos roller, 580 €"], say: "Ezt már régóta kinéztem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 580 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Fehér Dániel", age: 34, from: "Beregszász, Ukrajna", via: "Kisbusz", bag: ["2 l csendes bor", "2 l vodka (40%)", "1 l vermut (16%)"], say: "Csak magunknak.", ans: "stop",
+    why: "Túllépés: a 2 l tömény az 1 literes keret 200%-a és az 1 l 22% alatti ital a 2 literes keret 50%-a, együtt 250%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Kohári Erik", age: 28, from: "London, Egyesült Királyság", via: "Repülő", bag: ["16 l sör", "0,5 l vodka (40%)", "2 l portói (20%)"], say: "Ezt otthon nem kapni.", ans: "stop",
+    why: "Túllépés: a 0,5 l tömény az 1 literes keret 50%-a és a 2 l 22% alatti ital a 2 literes keret 100%-a, együtt 150%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Csató Helga", age: 74, from: "New York, USA", via: "Repülő", bag: ["4 l csendes bor", "18 l sör"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: a 18 l sör több a 16 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Szilágyi Gizella", age: 21, from: "Podgorica, Montenegró", via: "Busz", bag: ["Játékkonzol, 330 €"], say: "Nem tudtam ellenállni.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru értéke 330 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Deák Kamilla", age: 58, from: "Podgorica, Montenegró", via: "Kisbusz", bag: ["Ékszer, 230 €", "Ruhák, 250 €"], say: "Szülinapi meglepetés lesz.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru együttes értéke 480 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Lantos Tibor", age: 72, from: "Mexikóváros, Mexikó", via: "Repülő", bag: ["Fényképezőgép, 520 €"], say: "Ezt már régóta kinéztem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 520 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Márkus Lili", age: 33, from: "Bécs, Ausztria", via: "Busz", bag: ["Kozmetikumok, 760 €"], say: "Szülinapi meglepetés lesz.", ans: "go",
+    why: "Ausztria EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 760 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Antal Aladár", age: 59, from: "Zombor, Szerbia", via: "Személyautó", bag: ["5 l csendes bor", "10 l sör", "2 l gin (41%)"], say: "Ezt otthon nem kapni.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél; a 2 l tömény az 1 literes keret 200%-a, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Kohári Edina", age: 58, from: "Tunisz, Tunézia", via: "Repülő", bag: ["Óriáskagyló héja"], say: "Csak egy kis emlék.", ans: "stop",
+    why: "Az óriáskagyló CITES-védett, engedély nélkül nem hozható be.", src: "Utastájékoztató III.6." },
+  { name: "Urbán Ágota", age: 69, from: "Újvidék, Szerbia", via: "Motor", bag: ["12 db szivar", "5 db szivarka"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton A 12 db szivar a 10 db-os keret 120%-a, az 5 db szivarka a 20 db-os keret 25%-a. Együtt 145%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Varga Rebeka", age: 73, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["Joghurt"], say: "Ajándékba kaptam.", ans: "stop",
+    why: "Harmadik országból tejtermék nem hozható be.", src: "Utastájékoztató III.1." },
+  { name: "Sólyom Jenő", age: 39, from: "Podgorica, Montenegró", via: "Személyautó", bag: ["Szárított tengeri csikó"], say: "Ajándékba kaptam.", ans: "stop",
+    why: "A tengeri csikó CITES-védett, engedély nélkül nem hozható be.", src: "Utastájékoztató III.6." },
+  { name: "Tarr Mátyás", age: 52, from: "Tbiliszi, Grúzia", via: "Repülő", bag: ["6 l csendes bor", "10 l sör"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Kis Levente", age: 69, from: "New York, USA", via: "Repülő", bag: ["75 g fogyasztási dohány", "40 db cigaretta"], say: "A vámmentes boltban vettem.", ans: "go",
+    why: "Légi úton A 75 g fogyasztási dohány a 250 g-os keret 30%-a, a 40 db cigaretta a 200 db-os keret 20%-a. Együtt 50%, ez belefér.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Egri Luca", age: 23, from: "Zenta, Szerbia", via: "Személyautó", bag: ["Parfüm, 80 €", "Szőnyeg, 190 €"], say: "A családnak hoztam.", ans: "go",
+    why: "Harmadik országból nem légi úton 300 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 270 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Kalmár László", age: 34, from: "Lemberg, Ukrajna", via: "Repülő", bag: ["Parfüm, 120 €", "Ékszer, 360 €"], say: "Akciós volt.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru együttes értéke 480 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Sándor Eszter", age: 71, from: "Beregszász, Ukrajna", via: "Motor", bag: ["75 g fogyasztási dohány", "50 db szivarka"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton A 75 g fogyasztási dohány az 50 g-os keret 150%-a, az 50 db szivarka a 20 db-os keret 250%-a. Együtt 400%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Vadász Zita", age: 26, from: "Bangkok, Thaiföld", via: "Repülő", bag: ["Bőrkabát, 410 €"], say: "Ajándéknak vettem.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 410 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Komlósi Panna", age: 19, from: "Kairó, Egyiptom", via: "Repülő", bag: ["Kerékpáros sisak, 80 €", "Kézitáska, 140 €"], say: "Magamnak, emlékbe.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 220 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Deák Sebestyén", age: 36, from: "Belgrád, Szerbia", via: "Vonat", bag: ["80 db cigaretta", "20 db szivarka"], say: "A vámmentes boltban vettem.", ans: "stop",
+    why: "Nem légi úton A 80 db cigaretta a 40 db-os keret 200%-a, a 20 db szivarka a 20 db-os keret 100%-a. Együtt 300%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Pongrácz Károly", age: 46, from: "London, Egyesült Királyság", via: "Repülő", bag: ["3 db szivar", "40 db cigaretta"], say: "Ajándék a sógornak.", ans: "go",
+    why: "Légi úton A 3 db szivar az 50 db-os keret 6%-a, a 40 db cigaretta a 200 db-os keret 20%-a. Együtt 26%, ez belefér.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Rácz Sebestyén", age: 39, from: "Reykjavík, Izland", via: "Repülő", bag: ["Joghurt"], say: "Ilyet itthon nem találni.", ans: "stop",
+    why: "Harmadik országból tejtermék nem hozható be.", src: "Utastájékoztató III.1." },
+  { name: "Molnár Teréz", age: 29, from: "Edirne, Törökország", via: "Vonat", bag: ["6 l csendes bor", "8 l sör", "2 l brandy (38%)", "3 l portói (20%)"], say: "A vámmentes boltból.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél; a 2 l tömény az 1 literes keret 200%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 350%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Deák Katalin", age: 59, from: "Baku, Azerbajdzsán", via: "Repülő", bag: ["25 db szivarka", "150 g fogyasztási dohány"], say: "Ajándék a sógornak.", ans: "go",
+    why: "Légi úton A 25 db szivarka a 100 db-os keret 25%-a, a 150 g fogyasztási dohány a 250 g-os keret 60%-a. Együtt 85%, ez belefér.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Tarr Janka", age: 32, from: "Isztambul, Törökország", via: "Busz", bag: ["Kutya: mikrochip, veszettség elleni oltás"], say: "Ő is családtag.", ans: "stop",
+    why: "Kutya egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: állatútlevél.", src: "Utastájékoztató III.3.1." },
+  { name: "Balázs Gyula", age: 50, from: "Lemberg, Ukrajna", via: "Busz", bag: ["Kávéfőző, 170 €", "Kerékpáros sisak, 60 €"], say: "Magamnak, emlékbe.", ans: "go",
+    why: "Harmadik országból nem légi úton 300 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 230 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Sólyom Gábor", age: 15, from: "Lemberg, Ukrajna", via: "Busz", bag: ["6 l csendes bor", "10 l sör", "1 l brandy (38%)", "3 l pezsgő"], say: "Vendégségbe visszük.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.1." },
+  { name: "Nádas Rezső", age: 21, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["Napszemüveg, 200 €"], say: "Akciós volt.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 200 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Bánki Flóra", age: 53, from: "Oslo, Norvégia", via: "Repülő", bag: ["Házi tejpor"], say: "Ajándékba kaptam.", ans: "stop",
+    why: "Harmadik országból tejterméket csak szigorú kivételekkel lehet behozni.", src: "Utastájékoztató III.1." },
+  { name: "Kohári Tünde", age: 48, from: "Párizs, Franciaország", via: "Vonat", bag: ["3 karton cigaretta (600 db)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 600 cigaretta a 800-as irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Horváth Olga", age: 19, from: "Buenos Aires, Argentína", via: "Repülő", bag: ["6 l csendes bor", "1,5 l portói (20%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Gyenes Tamara", age: 21, from: "Split, Horvátország", via: "Vonat", bag: ["6 l tequila (38%)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 6 l tömény a 10 literes irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Kis Pál", age: 64, from: "Chișinău, Moldova", via: "Motor", bag: ["Készpénz: 14 000 €"], say: "Megtakarítás.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 14 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Sáfrány Rezső", age: 48, from: "Edirne, Törökország", via: "Busz", bag: ["Parfüm, 90 €", "Napszemüveg, 120 €"], say: "Szülinapi meglepetés lesz.", ans: "go",
+    why: "Harmadik országból nem légi úton 300 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 210 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Gyenes Janka", age: 30, from: "Beregszász, Ukrajna", via: "Személyautó", bag: ["25 db szivarka"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton 20 db szivarka hozható be vámmentesen. A 25 db a keret 125%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Ujvári Marcell", age: 52, from: "Párizs, Franciaország", via: "Repülő", bag: ["3 karton cigaretta (600 db)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 600 cigaretta a 800-as irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Urbán Szilvia", age: 62, from: "Beregszász, Ukrajna", via: "Személyautó", bag: ["10 db szivarka"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Nem légi úton 20 db szivarka hozható be vámmentesen. A 10 db a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Fábián Barbara", age: 70, from: "Rio de Janeiro, Brazília", via: "Repülő", bag: ["Óra, 190 €"], say: "Akciós volt.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 190 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Pető Rózsa", age: 26, from: "Tirana, Albánia", via: "Motor", bag: ["Készpénz: 20 000 €"], say: "Üzleti útról jövök.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 20 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Komlósi Elemér", age: 22, from: "Edinburgh, Egyesült Királyság", via: "Repülő", bag: ["75 g fogyasztási dohány"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Légi úton 250 g fogyasztási dohány hozható be vámmentesen. A 75 g a keret 30%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Ács Bálint", age: 24, from: "Lemberg, Ukrajna", via: "Kisbusz", bag: ["Teli tank", "3 l üzemanyag kannában"], say: "Tartaléknak.", ans: "go",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 3 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Fehér Helga", age: 27, from: "Lemberg, Ukrajna", via: "Busz", bag: ["3 l csendes bor", "0,7 l tequila (38%)", "3 l likőr (18%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: a 0,7 l tömény az 1 literes keret 70%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 220%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Lukács Géza", age: 51, from: "Edirne, Törökország", via: "Személyautó", bag: ["100 g fogyasztási dohány"], say: "Ajándék a sógornak.", ans: "stop",
+    why: "Nem légi úton 50 g fogyasztási dohány hozható be vámmentesen. A 100 g a keret 200%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Boros László", age: 22, from: "Isztambul, Törökország", via: "Kisbusz", bag: ["5 db szivarka"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Nem légi úton 20 db szivarka hozható be vámmentesen. Az 5 db a keret 25%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Turi Mira", age: 30, from: "Kairó, Egyiptom", via: "Repülő", bag: ["Házi vaj"], say: "A piacon vettem.", ans: "stop",
+    why: "Harmadik országból tejtermék nem hozható be.", src: "Utastájékoztató III.1." },
+  { name: "Lukács Marcell", age: 18, from: "Bangkok, Thaiföld", via: "Repülő", bag: ["5 kg barack"], say: "Ott sokkal finomabb.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 5 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Lantos Noel", age: 71, from: "London, Egyesült Királyság", via: "Repülő", bag: ["Laptop, 680 €"], say: "Szülinapi meglepetés lesz.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 680 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Vámos Csaba", age: 47, from: "Banja Luka, Bosznia-Hercegovina", via: "Busz", bag: ["Füstölt sonka"], say: "A piacon vettem.", ans: "stop",
+    why: "Harmadik országból húsárut nem lehet behozni.", src: "Utastájékoztató III.1." },
+  { name: "Csató Jenő", age: 36, from: "Chișinău, Moldova", via: "Kisbusz", bag: ["Gyümölcsfa-oltvány"], say: "Csak egy kis emlék.", ans: "stop",
+    why: "Élő növényi szaporítóanyag nem hozható be bizonyítvány nélkül.", src: "Utastájékoztató III.8." },
+  { name: "Dombi Alíz", age: 6, from: "Baku, Azerbajdzsán", via: "Repülő", bag: ["Laptop, 40 €", "Okosóra, 60 €"], say: "Magamnak, emlékbe.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 100 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Bánki Boglárka", age: 66, from: "Dubaj, EAE", via: "Repülő", bag: ["Macska: mikrochip, veszettség elleni oltás, állatútlevél"], say: "Most fogadtuk örökbe.", ans: "go",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Minden megvan.", src: "Utastájékoztató III.3.1." },
+  { name: "Veres Hunor", age: 47, from: "Banja Luka, Bosznia-Hercegovina", via: "Motor", bag: ["25 db szivar"], say: "Egy kis ebből, egy kis abból.", ans: "stop",
+    why: "Nem légi úton 10 db szivar hozható be vámmentesen. A 25 db a keret 250%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Szekeres Orsolya", age: 48, from: "Buenos Aires, Argentína", via: "Repülő", bag: ["3 l csendes bor", "0,7 l vodka (40%)"], say: "Vendégségbe visszük.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 3 l bor; a 0,7 l tömény az 1 literes keret 70%-a. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Pongrácz Gizella", age: 54, from: "Zürich, Svájc", via: "Repülő", bag: ["Gyógyszer 180 napra", "Orvosi igazolás"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 180 napos mennyiség ezt meghaladja.", src: "Utastájékoztató III.2." },
+  { name: "Dombi Judit", age: 33, from: "Szabadka, Szerbia", via: "Kisbusz", bag: ["Teli tank", "25 l üzemanyag kannában"], say: "A fűnyíróba lesz.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 25 liter ezt túllépi.", src: "Utastájékoztató II.4." },
+  { name: "Rozs Eszter", age: 54, from: "Reykjavík, Izland", via: "Repülő", bag: ["50 db szivar"], say: "A vámmentes boltban vettem.", ans: "go",
+    why: "Légi úton 50 db szivar hozható be vámmentesen. Az 50 db a keret 100%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Bodó Sára", age: 28, from: "Edinburgh, Egyesült Királyság", via: "Repülő", bag: ["Kutya: mikrochip, veszettség elleni oltás"], say: "Ő is családtag.", ans: "stop",
+    why: "Kutya egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: állatútlevél.", src: "Utastájékoztató III.3.1." },
+  { name: "Ács Hunor", age: 30, from: "Ljubljana, Szlovénia", via: "Személyautó", bag: ["Drón, 1 010 €"], say: "Ajándéknak vettem.", ans: "go",
+    why: "Szlovénia EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, az 1 010 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Dányi Nikolett", age: 66, from: "Fokváros, Dél-afrikai Köztársaság", via: "Repülő", bag: ["Sportcipő, 210 €"], say: "Ajándéknak vettem.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 210 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Tarr Anna", age: 75, from: "Edirne, Törökország", via: "Repülő", bag: ["7 kg citrom"], say: "Útravalónak.", ans: "stop",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 7 kg ezt túllépi.", src: "Utastájékoztató III.8." },
+  { name: "Kalmár Vanda", age: 27, from: "Edirne, Törökország", via: "Személyautó", bag: ["40 db cigaretta", "5 db szivarka"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton A 40 db cigaretta a 40 db-os keret 100%-a, az 5 db szivarka a 20 db-os keret 25%-a. Együtt 125%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Bodó Rózsa", age: 40, from: "Miami, USA", via: "Repülő", bag: ["Gyógyszer 180 napra", "Orvosi igazolás"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 180 napos mennyiség ezt meghaladja.", src: "Utastájékoztató III.2." },
+  { name: "Lantos Hajnal", age: 52, from: "Munkács, Ukrajna", via: "Vonat", bag: ["1 kg citrom"], say: "Ott sokkal finomabb.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 1 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Albert Mátyás", age: 49, from: "Marrákes, Marokkó", via: "Repülő", bag: ["Készpénz: 3 000 €"], say: "Lakásfelújításra.", ans: "go",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 3 000 € ez alatt van, nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Miklós Jenő", age: 27, from: "Isztambul, Törökország", via: "Repülő", bag: ["3 l csendes bor", "1 l brandy (38%)"], say: "Csak magunknak.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 3 l bor; az 1 l tömény az 1 literes keret 100%-a. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Pálos Emese", age: 15, from: "Isztambul, Törökország", via: "Személyautó", bag: ["50 db szivarka", "8 db szivar"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Dohányterméket csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.2." },
+  { name: "Dombi Ádám", age: 70, from: "Ungvár, Ukrajna", via: "Vonat", bag: ["8 kg banán"], say: "Ott sokkal finomabb.", ans: "stop",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 8 kg ezt túllépi.", src: "Utastájékoztató III.8." },
+  { name: "Antal Zoltán", age: 43, from: "Edirne, Törökország", via: "Repülő", bag: ["4 l csendes bor", "16 l sör", "3 l prosecco"], say: "Ezt otthon nem kapni.", ans: "stop",
+    why: "Túllépés: a 3 l 22% alatti ital a 2 literes keret 150%-a, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Bakó Kristóf", age: 36, from: "Zürich, Svájc", via: "Repülő", bag: ["100 db szivarka", "25 g fogyasztási dohány"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Légi úton A 100 db szivarka a 100 db-os keret 100%-a, a 25 g fogyasztási dohány a 250 g-os keret 10%-a. Együtt 110%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Bérczi Dóra", age: 32, from: "Tbiliszi, Grúzia", via: "Repülő", bag: ["6 l csendes bor", "1 l rakija (42%)", "2 l pezsgő"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél; az 1 l tömény az 1 literes keret 100%-a és a 2 l 22% alatti ital a 2 literes keret 100%-a, együtt 200%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Horváth Aladár", age: 58, from: "Banja Luka, Bosznia-Hercegovina", via: "Repülő", bag: ["Gyógyszer 90 napra"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Folyamatos kezeléshez szükséges gyógyszer orvosi igazolással hozható be; igazolás nélkül ellenőrzés szükséges.", src: "Utastájékoztató III.2." },
+  { name: "Halmos Kinga", age: 57, from: "Bangkok, Thaiföld", via: "Repülő", bag: ["20 l sör", "1 l vodka (40%)"], say: "A vámmentes boltból.", ans: "stop",
+    why: "Túllépés: a 20 l sör több a 16 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Keresztes Katalin", age: 45, from: "Szkopje, Észak-Macedónia", via: "Busz", bag: ["4 l csendes bor", "10 l sör", "0,7 l tequila (38%)", "3 l vermut (16%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: a 0,7 l tömény az 1 literes keret 70%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 220%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Veres Kinga", age: 15, from: "Bali, Indonézia", via: "Repülő", bag: ["20 db szivar", "100 g fogyasztási dohány"], say: "Csak a szokásos adagom.", ans: "stop",
+    why: "Dohányterméket csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.2." },
+  { name: "Kis Rózsa", age: 38, from: "Munkács, Ukrajna", via: "Vonat", bag: ["125 g fogyasztási dohány", "100 db cigaretta"], say: "A vámmentes boltban vettem.", ans: "stop",
+    why: "Nem légi úton A 125 g fogyasztási dohány az 50 g-os keret 250%-a, a 100 db cigaretta a 40 db-os keret 250%-a. Együtt 500%, ami túllépi a 100%-ot.", src: "Utastájékoztató II.2. (részarány-szabály)" },
+  { name: "Kis Anna", age: 45, from: "Lemberg, Ukrajna", via: "Busz", bag: ["25 db szivarka"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton 20 db szivarka hozható be vámmentesen. A 25 db a keret 125%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Szűts Károly", age: 44, from: "Beregszász, Ukrajna", via: "Busz", bag: ["2 l csendes bor", "20 l sör", "0,7 l rakija (42%)", "3 l pezsgő"], say: "Csak magunknak.", ans: "stop",
+    why: "Túllépés: a 20 l sör több a 16 literes keretnél; a 0,7 l tömény az 1 literes keret 70%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 220%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Sólyom Kamilla", age: 71, from: "Szabadka, Szerbia", via: "Kisbusz", bag: ["Teli tank", "25 l üzemanyag kannában"], say: "Tartaléknak.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 25 liter ezt túllépi.", src: "Utastájékoztató II.4." },
+  { name: "Hajdu Ágota", age: 51, from: "Edirne, Törökország", via: "Repülő", bag: ["4 l csendes bor", "16 l sör", "2 l tequila (38%)", "1 l prosecco"], say: "A vámmentes boltból.", ans: "stop",
+    why: "Túllépés: a 2 l tömény az 1 literes keret 200%-a és az 1 l 22% alatti ital a 2 literes keret 50%-a, együtt 250%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Bakó Dániel", age: 40, from: "Szkopje, Észak-Macedónia", via: "Kisbusz", bag: ["75 g fogyasztási dohány"], say: "Csak a szokásos adagom.", ans: "stop",
+    why: "Nem légi úton 50 g fogyasztási dohány hozható be vámmentesen. A 75 g a keret 150%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Madár Alíz", age: 47, from: "Almati, Kazahsztán", via: "Repülő", bag: ["100 g fogyasztási dohány"], say: "A vámmentes boltban vettem.", ans: "go",
+    why: "Légi úton 250 g fogyasztási dohány hozható be vámmentesen. A 100 g a keret 40%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Mészáros Dorina", age: 47, from: "Szöul, Dél-Korea", via: "Repülő", bag: ["Kutya: mikrochip, veszettség elleni oltás, állatútlevél"], say: "Most fogadtuk örökbe.", ans: "go",
+    why: "Kutya egyedi azonosítóval, oltással és állatútlevéllel léphet be. Minden megvan.", src: "Utastájékoztató III.3.1." },
+  { name: "Csató Melitta", age: 40, from: "Mumbai, India", via: "Repülő", bag: ["Készpénz: 25 000 €"], say: "Üzleti útról jövök.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 25 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Csató Zita", age: 21, from: "New York, USA", via: "Repülő", bag: ["60 db szivarka"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Légi úton 100 db szivarka hozható be vámmentesen. A 60 db a keret 60%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Endrődi Nándor", age: 38, from: "Beregszász, Ukrajna", via: "Kisbusz", bag: ["2 l csendes bor", "1 l likőr (18%)"], say: "A vámmentes boltból.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 2 l bor; az 1 l 22% alatti ital a 2 literes keret 50%-a. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Vámos Olga", age: 45, from: "Kassa, Szlovákia", via: "Busz", bag: ["Napszemüveg, 380 €"], say: "Magamnak, emlékbe.", ans: "go",
+    why: "Szlovákia EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 380 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Boros Szilvia", age: 18, from: "London, Egyesült Királyság", via: "Repülő", bag: ["Kozmetikumok, 140 €", "Napszemüveg, 220 €"], say: "Ezt már régóta kinéztem.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 360 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Tóth Dorina", age: 69, from: "Szarajevó, Bosznia-Hercegovina", via: "Személyautó", bag: ["Okosóra, 320 €", "Sportcipő, 150 €"], say: "A családnak hoztam.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru együttes értéke 470 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Komlósi Szabina", age: 42, from: "Szkopje, Észak-Macedónia", via: "Motor", bag: ["Óra, 400 €"], say: "Szülinapi meglepetés lesz.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru értéke 400 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Bánki Tünde", age: 63, from: "London, Egyesült Királyság", via: "Repülő", bag: ["Drón, 540 €"], say: "Ajándéknak vettem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 540 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Kozma Mira", age: 34, from: "Újvidék, Szerbia", via: "Személyautó", bag: ["Zacskó virágmag"], say: "A piacon vettem.", ans: "stop",
+    why: "Vetőmag bizonyítvány nélkül nem hozható be.", src: "Utastájékoztató III.8." },
+  { name: "Halmos Fanni", age: 30, from: "Chișinău, Moldova", via: "Repülő", bag: ["40 db cigaretta"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Légi úton 200 db cigaretta hozható be vámmentesen. A 40 db a keret 20%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Rozs Zétény", age: 57, from: "Isztambul, Törökország", via: "Személyautó", bag: ["10 kg citrom"], say: "Útravalónak.", ans: "stop",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 10 kg ezt túllépi.", src: "Utastájékoztató III.8." },
+  { name: "Halmos Dénes", age: 69, from: "Szöul, Dél-Korea", via: "Repülő", bag: ["Készpénz: 10 200 €"], say: "Megtakarítás.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 10 200 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Zöldi Luca", age: 32, from: "Szöul, Dél-Korea", via: "Repülő", bag: ["Gyógyszer 30 napra", "Orvosi igazolás"], say: "Rendszeresen szedem.", ans: "go",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 30 napos mennyiség belefér.", src: "Utastájékoztató III.2." },
+  { name: "Madár Sebestyén", age: 61, from: "Róma, Olaszország", via: "Személyautó", bag: ["4 karton cigaretta (800 db)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 800 cigaretta a 800-as irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Mészáros Barbara", age: 43, from: "Isztambul, Törökország", via: "Személyautó", bag: ["4 l csendes bor", "0,5 l rum (37,5%)", "3 l prosecco"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: a 0,5 l tömény az 1 literes keret 50%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 200%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Oláh Zétény", age: 58, from: "Tirana, Albánia", via: "Vonat", bag: ["Krokodilbőr öv"], say: "Ajándékba kaptam.", ans: "stop",
+    why: "A krokodilbőr termék CITES-hatálya alá tartozik, engedély kell hozzá.", src: "Utastájékoztató III.6." },
+  { name: "Sáfrány Vanda", age: 44, from: "Szarajevó, Bosznia-Hercegovina", via: "Személyautó", bag: ["25 db szivar"], say: "Csak a szokásos adagom.", ans: "stop",
+    why: "Nem légi úton 10 db szivar hozható be vámmentesen. A 25 db a keret 250%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Bodó Ágota", age: 25, from: "Szarajevó, Bosznia-Hercegovina", via: "Személyautó", bag: ["Játékkonzol, 270 €"], say: "A családnak hoztam.", ans: "go",
+    why: "Harmadik országból nem légi úton 300 € értékig hozható be áru vám- és adómentesen. Az áru értéke 270 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Sólyom Dénes", age: 29, from: "Belgrád, Szerbia", via: "Busz", bag: ["4 l csendes bor", "10 l sör", "1 l prosecco"], say: "Vendégségbe visszük.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 4 l bor; a 10 l sör; az 1 l 22% alatti ital a 2 literes keret 50%-a. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Gaál Sára", age: 39, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["15 db szivarka"], say: "Ajándék a sógornak.", ans: "go",
+    why: "Légi úton 100 db szivarka hozható be vámmentesen. A 15 db a keret 15%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Fenyő Lenke", age: 47, from: "Szkopje, Észak-Macedónia", via: "Busz", bag: ["10 db szivarka"], say: "Egy kis ebből, egy kis abból.", ans: "go",
+    why: "Nem légi úton 20 db szivarka hozható be vámmentesen. A 10 db a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Pap Alíz", age: 8, from: "Szarajevó, Bosznia-Hercegovina", via: "Kisbusz", bag: ["Szőnyeg, 50 €"], say: "A családnak hoztam.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru értéke 50 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Kis Dorina", age: 58, from: "Toronto, Kanada", via: "Repülő", bag: ["25 g fogyasztási dohány"], say: "Ajándék a sógornak.", ans: "go",
+    why: "Légi úton 250 g fogyasztási dohány hozható be vámmentesen. A 25 g a keret 10%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Halmos Viktor", age: 27, from: "Kassa, Szlovákia", via: "Busz", bag: ["Bőrkabát, 690 €"], say: "A családnak hoztam.", ans: "go",
+    why: "Szlovákia EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 690 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Németh Gábor", age: 66, from: "Szkopje, Észak-Macedónia", via: "Kisbusz", bag: ["Készpénz: 10 000 €"], say: "A rokonok adták.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 10 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Fenyő Dalma", age: 19, from: "Zombor, Szerbia", via: "Vonat", bag: ["2 l csendes bor", "1,5 l tequila (38%)", "2 l pezsgő"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: az 1,5 l tömény az 1 literes keret 150%-a és a 2 l 22% alatti ital a 2 literes keret 100%-a, együtt 250%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Gyenes Rózsa", age: 15, from: "Podgorica, Montenegró", via: "Vonat", bag: ["10 db szivarka"], say: "Egy kis ebből, egy kis abból.", ans: "stop",
+    why: "Dohányterméket csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.2." },
+  { name: "Illés Gyula", age: 26, from: "Lisszabon, Portugália", via: "Busz", bag: ["2 karton cigaretta (400 db)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 400 cigaretta a 800-as irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Kohári Kinga", age: 20, from: "Párizs, Franciaország", via: "Vonat", bag: ["15 l vodka (40%)"], say: "Saját fogyasztásra.", ans: "stop",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; 10 liter tömény felett viszont a NAV vizsgálja, nem kereskedelmi célú-e a 15 liter.", src: "Utastájékoztató III.9." },
+  { name: "Fehér Janka", age: 75, from: "Zenta, Szerbia", via: "Személyautó", bag: ["Kávéfőző, 240 €", "Napszemüveg, 90 €"], say: "Kint sokkal olcsóbb.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru együttes értéke 330 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Nádas Kristóf", age: 60, from: "Edinburgh, Egyesült Királyság", via: "Repülő", bag: ["Készpénz: 5 000 €"], say: "Üzleti útról jövök.", ans: "go",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. Az 5 000 € ez alatt van, nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Horváth Gizella", age: 24, from: "Graz, Ausztria", via: "Busz", bag: ["Bőrkabát, 780 €"], say: "Szülinapi meglepetés lesz.", ans: "go",
+    why: "Ausztria EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 780 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Fenyő Lajos", age: 18, from: "Tel-Aviv, Izrael", via: "Repülő", bag: ["1 kg mandarin"], say: "Útravalónak.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 1 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Dányi Rebeka", age: 15, from: "Dubaj, EAE", via: "Repülő", bag: ["10 l sör", "1 l pálinka (45%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.1." },
+  { name: "Sáfrány Edina", age: 69, from: "Chicago, USA", via: "Repülő", bag: ["Zacskó virágmag"], say: "Ajándékba kaptam.", ans: "stop",
+    why: "Vetőmag bizonyítvány nélkül nem hozható be.", src: "Utastájékoztató III.8." },
+  { name: "Kocsis Eszter", age: 40, from: "Belgrád, Szerbia", via: "Személyautó", bag: ["Okosóra, 330 €"], say: "Ezt már régóta kinéztem.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru értéke 330 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Orbán Mira", age: 60, from: "Chișinău, Moldova", via: "Motor", bag: ["5 db szivar"], say: "Ajándék a sógornak.", ans: "go",
+    why: "Nem légi úton 10 db szivar hozható be vámmentesen. Az 5 db a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Miklós Áron", age: 56, from: "Belgrád, Szerbia", via: "Motor", bag: ["6 l csendes bor", "10 l sör", "0,5 l rakija (42%)", "3 l vermut (16%)"], say: "Ezt otthon nem kapni.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél; a 0,5 l tömény az 1 literes keret 50%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 200%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Halmos Marcell", age: 64, from: "Isztambul, Törökország", via: "Személyautó", bag: ["Kutya: mikrochip, veszettség elleni oltás"], say: "Mindenhová velünk jön.", ans: "stop",
+    why: "Kutya egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: állatútlevél.", src: "Utastájékoztató III.3.1." },
+  { name: "Nagy Imola", age: 36, from: "Hanoi, Vietnám", via: "Repülő", bag: ["Fülhallgató, 250 €"], say: "Kint sokkal olcsóbb.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 250 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Fehér Flóra", age: 47, from: "Isztambul, Törökország", via: "Repülő", bag: ["Parfüm, 110 €", "Fülhallgató, 300 €"], say: "Ajándéknak vettem.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 410 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Zöldi Valéria", age: 49, from: "Isztambul, Törökország", via: "Vonat", bag: ["Macska: mikrochip, veszettség elleni oltás, állatútlevél"], say: "Mindenhová velünk jön.", ans: "go",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Minden megvan.", src: "Utastájékoztató III.3.1." },
+  { name: "Szabó Rezső", age: 68, from: "Peking, Kína", via: "Repülő", bag: ["Gyógyszer 14 napra"], say: "A kezelőorvosom írta fel.", ans: "stop",
+    why: "Folyamatos kezeléshez szükséges gyógyszer orvosi igazolással hozható be; igazolás nélkül ellenőrzés szükséges.", src: "Utastájékoztató III.2." },
+  { name: "Fenyő Rebeka", age: 69, from: "Beregszász, Ukrajna", via: "Személyautó", bag: ["Teli tank", "3 l üzemanyag kannában"], say: "Ott olcsóbb.", ans: "go",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 3 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Csák Viktor", age: 69, from: "New York, USA", via: "Repülő", bag: ["Macska: mikrochip, veszettség elleni oltás, állatútlevél"], say: "Ő is családtag.", ans: "go",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Minden megvan.", src: "Utastájékoztató III.3.1." },
+  { name: "Illés Károly", age: 36, from: "Zombor, Szerbia", via: "Kisbusz", bag: ["Készpénz: 14 000 €"], say: "A rokonok adták.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 14 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Magyar Emese", age: 35, from: "Edirne, Törökország", via: "Repülő", bag: ["Kitömött egzotikus madár"], say: "Ilyet itthon nem találni.", ans: "stop",
+    why: "A védett madárfajok preparátumai CITES-engedélyhez kötöttek.", src: "Utastájékoztató III.6." },
+  { name: "Gergely Eszter", age: 34, from: "Tbiliszi, Grúzia", via: "Repülő", bag: ["125 g fogyasztási dohány"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Légi úton 250 g fogyasztási dohány hozható be vámmentesen. A 125 g a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Vida Orsolya", age: 75, from: "Zenta, Szerbia", via: "Kisbusz", bag: ["Teli tank", "5 l üzemanyag kannában"], say: "Tartaléknak.", ans: "go",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. Az 5 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Vida Levente", age: 71, from: "Róma, Olaszország", via: "Repülő", bag: ["Ékszer, 470 €"], say: "Kint sokkal olcsóbb.", ans: "go",
+    why: "Olaszország EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 470 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Szilágyi Zsuzsa", age: 43, from: "Nagyvárad, Románia", via: "Vonat", bag: ["12 l rakija (42%)"], say: "Saját fogyasztásra.", ans: "stop",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; 10 liter tömény felett viszont a NAV vizsgálja, nem kereskedelmi célú-e a 12 liter.", src: "Utastájékoztató III.9." },
+  { name: "Bérczi Róbert", age: 55, from: "Belgrád, Szerbia", via: "Személyautó", bag: ["Teli tank", "12 l üzemanyag kannában"], say: "A fűnyíróba lesz.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 12 liter ezt túllépi.", src: "Utastájékoztató II.4." },
+  { name: "Bodó Dóra", age: 64, from: "Kairó, Egyiptom", via: "Repülő", bag: ["4 kg mandarin"], say: "Ott sokkal finomabb.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 4 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Pető Csenge", age: 47, from: "Lemberg, Ukrajna", via: "Repülő", bag: ["Elektromos roller, 440 €"], say: "A családnak hoztam.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 440 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Tamás Levente", age: 34, from: "Zombor, Szerbia", via: "Motor", bag: ["Készpénz: 8 500 €"], say: "Lakásfelújításra.", ans: "go",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 8 500 € ez alatt van, nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Kun Luca", age: 38, from: "Almati, Kazahsztán", via: "Repülő", bag: ["5 kg mandarin"], say: "Ott sokkal finomabb.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 5 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Balázs Mihály", age: 61, from: "Beregszász, Ukrajna", via: "Vonat", bag: ["5 l csendes bor", "8 l sör", "0,5 l rum (37,5%)", "1 l vermut (16%)"], say: "Csak magunknak.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Balázs Szilvia", age: 15, from: "Belgrád, Szerbia", via: "Személyautó", bag: ["Ékszer, 290 €"], say: "Szülinapi meglepetés lesz.", ans: "go",
+    why: "Harmadik országból nem légi úton 300 € értékig hozható be áru vám- és adómentesen. Az áru értéke 290 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Komlósi Dénes", age: 75, from: "Szarajevó, Bosznia-Hercegovina", via: "Busz", bag: ["0,7 l pálinka (45%)", "3 l prosecco"], say: "Ezt otthon nem kapni.", ans: "stop",
+    why: "Túllépés: a 0,7 l tömény az 1 literes keret 70%-a és a 3 l 22% alatti ital a 2 literes keret 150%-a, együtt 220%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Herczeg Bence", age: 48, from: "Szabadka, Szerbia", via: "Személyautó", bag: ["Készpénz: 9 000 €"], say: "A rokonok adták.", ans: "go",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 9 000 € ez alatt van, nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Albert Boglárka", age: 15, from: "Isztambul, Törökország", via: "Repülő", bag: ["6 l csendes bor", "1 l tequila (38%)", "1 l pezsgő"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.1." },
+  { name: "Lukács Dániel", age: 70, from: "Chișinău, Moldova", via: "Repülő", bag: ["4 l csendes bor", "10 l sör", "0,5 l tequila (38%)", "1 l pezsgő"], say: "Ezt otthon nem kapni.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 4 l bor; a 10 l sör; a 0,5 l tömény az 1 literes keret 50%-a és az 1 l 22% alatti ital a 2 literes keret 50%-a, együtt 100%. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Laczkó Judit", age: 37, from: "Munkács, Ukrajna", via: "Kisbusz", bag: ["Napszemüveg, 230 €", "Fülhallgató, 170 €"], say: "Ajándéknak vettem.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru együttes értéke 400 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Bodó Kamilla", age: 52, from: "Ungvár, Ukrajna", via: "Motor", bag: ["10 l sör", "1 l brandy (38%)", "2 l likőr (18%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: az 1 l tömény az 1 literes keret 100%-a és a 2 l 22% alatti ital a 2 literes keret 100%-a, együtt 200%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Turi Lili", age: 59, from: "Podgorica, Montenegró", via: "Repülő", bag: ["4 kg szőlő"], say: "A piacon vettem.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 4 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Kis Imola", age: 51, from: "Szöul, Dél-Korea", via: "Repülő", bag: ["Tablet, 440 €"], say: "Ajándéknak vettem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 440 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Rácz Áron", age: 49, from: "Fokváros, Dél-afrikai Köztársaság", via: "Repülő", bag: ["Készpénz: 20 000 €"], say: "Üzleti útról jövök.", ans: "stop",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 20 000 € ezt eléri, ezért nyilatkozni kell.", src: "Utastájékoztató IV." },
+  { name: "Dombi Kinga", age: 29, from: "Podgorica, Montenegró", via: "Vonat", bag: ["Gyümölcsfa-oltvány"], say: "Ilyet itthon nem találni.", ans: "stop",
+    why: "Élő növényi szaporítóanyag nem hozható be bizonyítvány nélkül.", src: "Utastájékoztató III.8." },
+  { name: "Miklós Csaba", age: 16, from: "Reykjavík, Izland", via: "Repülő", bag: ["5 db szivarka", "150 g fogyasztási dohány"], say: "Csak a szokásos adagom.", ans: "stop",
+    why: "Dohányterméket csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.2." },
+  { name: "Antal Mátyás", age: 55, from: "Ungvár, Ukrajna", via: "Kisbusz", bag: ["Teli tank", "20 l üzemanyag kannában"], say: "A fűnyíróba lesz.", ans: "stop",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 20 liter ezt túllépi.", src: "Utastájékoztató II.4." },
+  { name: "Sebők Zsuzsa", age: 25, from: "Oslo, Norvégia", via: "Repülő", bag: ["Macska: mikrochip, veszettség elleni oltás"], say: "Most fogadtuk örökbe.", ans: "stop",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: állatútlevél.", src: "Utastájékoztató III.3.1." },
+  { name: "Bakó Panna", age: 28, from: "Tbiliszi, Grúzia", via: "Repülő", bag: ["Napszemüveg, 120 €", "Tablet, 550 €"], say: "Ezt már régóta kinéztem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru együttes értéke 670 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Vida Janka", age: 60, from: "Baku, Azerbajdzsán", via: "Repülő", bag: ["5 l csendes bor", "1 l pálinka (45%)"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Nagy Hajnal", age: 67, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["Tablet, 420 €", "Fülhallgató, 240 €"], say: "Magamnak, emlékbe.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru együttes értéke 660 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Miklós Dénes", age: 50, from: "Kolozsvár, Románia", via: "Repülő", bag: ["3 karton cigaretta (600 db)"], say: "Saját fogyasztásra.", ans: "go",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; a 600 cigaretta a 800-as irányszámon belül van.", src: "Utastájékoztató III.9." },
+  { name: "Oláh Róbert", age: 25, from: "Baku, Azerbajdzsán", via: "Repülő", bag: ["Macska: mikrochip, állatútlevél"], say: "Ő is családtag.", ans: "stop",
+    why: "Macska egyedi azonosítóval, oltással és állatútlevéllel léphet be. Hiányzik: veszettség elleni oltás.", src: "Utastájékoztató III.3.1." },
+  { name: "Egri Ágota", age: 41, from: "Edirne, Törökország", via: "Repülő", bag: ["5 l csendes bor", "10 l sör"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Tarr Olga", age: 59, from: "Lemberg, Ukrajna", via: "Kisbusz", bag: ["4 l csendes bor", "2 l brandy (38%)"], say: "Vendégségbe visszük.", ans: "stop",
+    why: "Túllépés: a 2 l tömény az 1 literes keret 200%-a, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Pető Tibor", age: 16, from: "Isztambul, Törökország", via: "Kisbusz", bag: ["5 l csendes bor", "20 l sör", "1 l tequila (38%)", "1 l pezsgő"], say: "A vámmentes boltból.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.1." },
+  { name: "Lukács Judit", age: 43, from: "Podgorica, Montenegró", via: "Busz", bag: ["60 db cigaretta"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Nem légi úton 40 db cigaretta hozható be vámmentesen. A 60 db a keret 150%-a, ez túllépés.", src: "Utastájékoztató II.2." },
+  { name: "Illés Kamilla", age: 16, from: "Tirana, Albánia", via: "Vonat", bag: ["4 l csendes bor", "8 l sör", "1,5 l likőr (18%)"], say: "Vendégségbe visszük.", ans: "stop",
+    why: "Alkoholt csak a 17. életévét betöltött utas hozhat be vámmentesen, mennyiségtől függetlenül.", src: "Utastájékoztató II.1." },
+  { name: "Bánki Gellért", age: 50, from: "Almati, Kazahsztán", via: "Repülő", bag: ["125 g fogyasztási dohány"], say: "Csak a szokásos adagom.", ans: "go",
+    why: "Légi úton 250 g fogyasztási dohány hozható be vámmentesen. A 125 g a keret 50%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Kun Anna", age: 27, from: "Hanoi, Vietnám", via: "Repülő", bag: ["2 l csendes bor", "1 l vermut (16%)"], say: "Ezt otthon nem kapni.", ans: "go",
+    why: "Minden ital a saját keretén belül van: a 2 l bor; az 1 l 22% alatti ital a 2 literes keret 50%-a. Bor 4 l, sör 16 l, mellé 1 l tömény vagy 2 l 22% alatti ital jöhet.", src: "Utastájékoztató II.1." },
+  { name: "Pető Olga", age: 50, from: "Amszterdam, Hollandia", via: "Személyautó", bag: ["15 l brandy (38%)"], say: "Saját fogyasztásra.", ans: "stop",
+    why: "Az EU-n belül saját célra a jövedéki termék nem adóköteles; 10 liter tömény felett viszont a NAV vizsgálja, nem kereskedelmi célú-e a 15 liter.", src: "Utastájékoztató III.9." },
+  { name: "Csák Alíz", age: 25, from: "Lemberg, Ukrajna", via: "Repülő", bag: ["Zacskó virágmag"], say: "A piacon vettem.", ans: "stop",
+    why: "Vetőmag bizonyítvány nélkül nem hozható be.", src: "Utastájékoztató III.8." },
+  { name: "Csák Pál", age: 51, from: "Banja Luka, Bosznia-Hercegovina", via: "Repülő", bag: ["Fényképezőgép, 480 €"], say: "Ezt már régóta kinéztem.", ans: "stop",
+    why: "Harmadik országból légi úton 430 € az értékhatár. Az áru értéke 480 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Komlósi Szilvia", age: 34, from: "Peking, Kína", via: "Repülő", bag: ["3 l csendes bor", "16 l sör", "2 l vodka (40%)"], say: "Ünnepekre vettem.", ans: "stop",
+    why: "Túllépés: a 2 l tömény az 1 literes keret 200%-a, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Bodó Károly", age: 47, from: "Genf, Svájc", via: "Repülő", bag: ["Ékszer, 330 €"], say: "Nem tudtam ellenállni.", ans: "go",
+    why: "Harmadik országból légi úton 430 € értékig hozható be áru vám- és adómentesen. Az áru értéke 330 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Sike Panna", age: 65, from: "Hurghada, Egyiptom", via: "Repülő", bag: ["5 db szivar"], say: "Egy kis ebből, egy kis abból.", ans: "go",
+    why: "Légi úton 50 db szivar hozható be vámmentesen. Az 5 db a keret 10%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Nádas Jenő", age: 8, from: "Lemberg, Ukrajna", via: "Busz", bag: ["Fülhallgató, 90 €"], say: "Akciós volt.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru értéke 90 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Radnai Géza", age: 34, from: "Beregszász, Ukrajna", via: "Személyautó", bag: ["Elektromos roller, 350 €"], say: "Magamnak, emlékbe.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru értéke 350 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Kozma Orsolya", age: 48, from: "Podgorica, Montenegró", via: "Repülő", bag: ["Gyógyszer 90 napra", "Orvosi igazolás"], say: "A kezelőorvosom írta fel.", ans: "go",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 90 napos mennyiség belefér.", src: "Utastájékoztató III.2." },
+  { name: "Magyar Teréz", age: 11, from: "Szkopje, Észak-Macedónia", via: "Vonat", bag: ["Kávéfőző, 30 €"], say: "Nem tudtam ellenállni.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru értéke 30 €, ez belefér.", src: "Utastájékoztató II.3." },
+  { name: "Tamás Tibor", age: 53, from: "Belgrád, Szerbia", via: "Vonat", bag: ["2 db szivar"], say: "Csak a szokásos adagom.", ans: "go",
+    why: "Nem légi úton 10 db szivar hozható be vámmentesen. A 2 db a keret 20%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Kis László", age: 75, from: "Edirne, Törökország", via: "Kisbusz", bag: ["6 l csendes bor", "10 l sör", "1 l rum (37,5%)", "1,5 l likőr (18%)"], say: "Csak magunknak.", ans: "stop",
+    why: "Túllépés: a 6 l bor több a 4 literes keretnél; az 1 l tömény az 1 literes keret 100%-a és az 1,5 l 22% alatti ital a 2 literes keret 75%-a, együtt 175%, ez túllépés. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Orbán Dénes", age: 79, from: "Szkopje, Észak-Macedónia", via: "Repülő", bag: ["Gyógyszer 14 napra"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Folyamatos kezeléshez szükséges gyógyszer orvosi igazolással hozható be; igazolás nélkül ellenőrzés szükséges.", src: "Utastájékoztató III.2." },
+  { name: "Pongrácz Sára", age: 35, from: "Bali, Indonézia", via: "Repülő", bag: ["Készpénz: 3 000 €"], say: "A rokonok adták.", ans: "go",
+    why: "Az EU külső határán 10 000 eurótól kötelező a készpénz-nyilatkozat. A 3 000 € ez alatt van, nem kell nyilatkozni.", src: "Utastájékoztató IV." },
+  { name: "Gyenes Tibor", age: 67, from: "Podgorica, Montenegró", via: "Busz", bag: ["1 kg barack"], say: "Ott sokkal finomabb.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 1 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Laczkó Eszter", age: 24, from: "Lemberg, Ukrajna", via: "Busz", bag: ["1 kg mandarin"], say: "A piacon vettem.", ans: "go",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. Az 1 kg belefér.", src: "Utastájékoztató III.8." },
+  { name: "Veres Tibor", age: 32, from: "Jereván, Örményország", via: "Repülő", bag: ["5 l csendes bor", "16 l sör", "1 l pezsgő"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Molnár Csenge", age: 64, from: "Toronto, Kanada", via: "Repülő", bag: ["8 kg mangó"], say: "Útravalónak.", ans: "stop",
+    why: "Személyes fogyasztásra gyümölcsből legfeljebb 5 kg hozható be harmadik országból. A 8 kg ezt túllépi.", src: "Utastájékoztató III.8." },
+  { name: "Szép Szilvia", age: 61, from: "Jereván, Örményország", via: "Repülő", bag: ["Gyógyszer 100 napra"], say: "Ott olcsóbb volt.", ans: "stop",
+    why: "Folyamatos kezeléshez szükséges gyógyszer orvosi igazolással hozható be; igazolás nélkül ellenőrzés szükséges.", src: "Utastájékoztató III.2." },
+  { name: "Urbán Edina", age: 54, from: "Lemberg, Ukrajna", via: "Repülő", bag: ["Gyógyszer 30 napra", "Orvosi igazolás"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Orvosi igazolással legfeljebb 90 napra elegendő gyógyszer hozható be. A 30 napos mennyiség belefér.", src: "Utastájékoztató III.2." },
+  { name: "Sike Piroska", age: 59, from: "Hanoi, Vietnám", via: "Repülő", bag: ["160 db cigaretta"], say: "Ott olcsóbb volt.", ans: "go",
+    why: "Légi úton 200 db cigaretta hozható be vámmentesen. A 160 db a keret 80%-a, ez belefér.", src: "Utastájékoztató II.2." },
+  { name: "Fehér Zita", age: 36, from: "Zombor, Szerbia", via: "Kisbusz", bag: ["Tablet, 260 €", "Ruhák, 90 €"], say: "A családnak hoztam.", ans: "stop",
+    why: "Harmadik országból nem légi úton 300 € az értékhatár. Az áru együttes értéke 350 €, ez túllépi, ezért ellenőrzés kell.", src: "Utastájékoztató II.3." },
+  { name: "Szalai Nándor", age: 45, from: "Bécs, Ausztria", via: "Vonat", bag: ["Ruhák, 450 €"], say: "Ajándéknak vettem.", ans: "go",
+    why: "Ausztria EU-tagállam. Az EU-n belül nincs vámeljárás és értékhatár, a 450 € értékű áru szabadon behozható.", src: "Utastájékoztató I." },
+  { name: "Gergely Sára", age: 23, from: "Zombor, Szerbia", via: "Kisbusz", bag: ["Teli tank", "10 l üzemanyag kannában"], say: "Tartaléknak.", ans: "go",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. A 10 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Sebők Gábor", age: 56, from: "Belgrád, Szerbia", via: "Kisbusz", bag: ["Teli tank", "5 l üzemanyag kannában"], say: "A fűnyíróba lesz.", ans: "go",
+    why: "A tankban lévő üzemanyag vámmentes, kannában járművenként legfeljebb 10 liter hozható be. Az 5 liter belefér.", src: "Utastájékoztató II.4." },
+  { name: "Illés Piroska", age: 23, from: "Szkopje, Észak-Macedónia", via: "Kisbusz", bag: ["5 l csendes bor"], say: "Egy kis kóstoló a családnak.", ans: "stop",
+    why: "Túllépés: az 5 l bor több a 4 literes keretnél. Harmadik országból 4 l bor, 16 l sör, és 1 l tömény vagy 2 l 22% alatti ital hozható be.", src: "Utastájékoztató II.1." },
+  { name: "Vida Valéria", age: 11, from: "Szarajevó, Bosznia-Hercegovina", via: "Vonat", bag: ["Sportcipő, 20 €", "Fülhallgató, 60 €"], say: "Nem tudtam ellenállni.", ans: "go",
+    why: "Harmadik országból 15 év alatti utasként, utazási módtól függetlenül 150 € értékig hozható be áru vám- és adómentesen. Az áru együttes értéke 80 €, ez belefér.", src: "Utastájékoztató II.3." },
+];
+const LEVELS = [
+  { id: "easy", title: "Kezdő pénzügyőr", desc: "10 utas, nincs időkorlát, az Utasforgalmi törvény nyitható.", round: 10, time: 0, lockRules: false },
+  { id: "normal", title: "Ügyintéző", desc: "12 utas, utasonként 20 másodperc.", round: 12, time: 20, lockRules: false },
+  { id: "hard", title: "Revizor", desc: "15 utas, 10 másodperc, az Utasforgalmi törvény zárva.", round: 15, time: 10, lockRules: true },
+];
+const RANKS = [[1, "Vámfőfelügyelő", "Hibátlan műszak! Egyetlen utas sem csúszott át."], [.83, "Pénzügyőr", "Kiváló munka, a határ jó kezekben van."],
+  [.58, "Próbaidős pénzügyőr", "Jó alap. Lapozd át az Utasforgalmi törvényt, és próbáld újra!"], [0, "Gyakornok", "Még van mit tanulni. Az Utasforgalmi törvényben minden szükséges szám megtalálható."]];
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("hatar:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("hatar:" + k, JSON.stringify(v)); } catch {} },
+};
+let S, L, timer = null;
+let soundOn = store.get("sound", true);
+
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// Hangok: egyszerű Web Audio hangjelzések, külön hangfájl nélkül
+let ctx;
+function beep(freq, dur, type = "sine", when = 0, vol = .15) {
+  if (!soundOn) return;
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ctx.currentTime + when, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur);
+  } catch {}
+}
+const sfx = {
+  ok() { beep(90, .12, "square", 0, .2); beep(660, .12, "sine", .08); beep(880, .18, "sine", .18); },
+  bad() { beep(90, .12, "square", 0, .2); beep(220, .3, "sawtooth", .08, .1); },
+  tick() { beep(1200, .05, "square", 0, .06); },
+  end() { [523, 659, 784, 1047].forEach((f, i) => beep(f, .2, "triangle", i * .12)); },
+};
+function renderSound() { $("btnSound").textContent = "Hang: " + (soundOn ? "be" : "ki"); $("btnSound").setAttribute("aria-pressed", soundOn); }
+
+function renderIntro() {
+  const box = $("levels"); box.innerHTML = "";
+  LEVELS.forEach(lv => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "level";
+    const best = store.get("best:" + lv.id, null);
+    b.innerHTML = `<span class="lt"></span><span class="ld"></span><span class="lb"></span>`;
+    b.querySelector(".lt").textContent = lv.title; b.querySelector(".ld").textContent = lv.desc;
+    b.querySelector(".lb").textContent = best === null ? "Még nincs rekord" : "Rekord: " + best + " pont";
+    b.addEventListener("click", () => start(lv));
+    box.append(b);
+  });
+}
+function menu() {
+  stopTimer(); S = null;
+  $("intro").hidden = false; $("game").hidden = true; $("end").hidden = true; $("stats").hidden = true; $("btnQuit").hidden = true;
+  setRulesLock(false); renderIntro();
+}
+function setRulesLock(lock) {
+  $("rules").classList.toggle("locked", lock); if (lock) $("rules").open = false;
+  $("rulesSum").textContent = lock ? "Utasforgalmi törvény (ezen a szinten zárva)" : "Utasforgalmi törvény";
+}
+$("rules").addEventListener("toggle", () => { if ($("rules").open && $("rules").classList.contains("locked")) $("rules").open = false; });
+
+function start(lv) {
+  L = lv || L;
+  S = { list: shuffle(POOL).slice(0, L.round), i: 0, score: 0, correct: 0, streak: 0, best: 0, misses: [], answered: false };
+  $("intro").hidden = true; $("end").hidden = true; $("game").hidden = false; $("stats").hidden = false; $("btnQuit").hidden = false;
+  $("sTimeBox").hidden = !L.time; $("timebar").hidden = !L.time;
+  setRulesLock(L.lockRules); show();
+  $("card").scrollIntoView({ block: "nearest" });
+}
+function show() {
+  const c = S.list[S.i]; S.answered = false;
+  $("cTitle").textContent = "Útlevél · Utas"; $("cNo").textContent = "HU-" + String(1000 + Math.floor(Math.random() * 9000));
+  $("fName").textContent = c.name; $("fAge").textContent = c.age + " év"; $("fFrom").textContent = c.from; $("fVia").textContent = c.via;
+  const bag = $("fBag"); bag.innerHTML = ""; c.bag.forEach(b => { const s = document.createElement("span"); s.className = "item"; s.textContent = b; bag.append(s); });
+  $("fSay").textContent = "„" + c.say + "”";
+  $("stamp").hidden = true; $("stamp").className = "stampmark";
+  $("verdict").hidden = true; $("btnGo").disabled = false; $("btnStop").disabled = false;
+  stats(); startTimer();
+}
+
+// Időzítő: minden utasra külön visszaszámlálás, lejáratkor téves döntésnek számít
+function startTimer() {
+  stopTimer(); if (!L.time) return;
+  const end = performance.now() + L.time * 1000; let lastSec = L.time;
+  S.left = L.time; renderTime(L.time);
+  timer = setInterval(() => {
+    const left = Math.max(0, (end - performance.now()) / 1000); S.left = left; renderTime(left);
+    const sec = Math.ceil(left);
+    if (sec !== lastSec) { lastSec = sec; if (sec <= 3 && sec > 0) sfx.tick(); }
+    if (left <= 0) { stopTimer(); decide(null); }
+  }, 100);
+}
+function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+function renderTime(left) {
+  const warn = left <= 3;
+  $("sTime").textContent = Math.ceil(left); $("sTimeBox").classList.toggle("warn", warn);
+  $("timefill").style.width = (left / L.time * 100) + "%"; $("timebar").classList.toggle("warn", warn);
+}
+
+function decide(choice) {
+  if (!S || S.answered) return;
+  S.answered = true; stopTimer();
+  const c = S.list[S.i]; const ok = choice === c.ans; let pts = 0;
+  $("btnGo").disabled = true; $("btnStop").disabled = true;
+  if (ok) {
+    S.correct++; S.streak++; S.best = Math.max(S.best, S.streak);
+    const timeBonus = L.time ? Math.round(S.left * 5) : 0;
+    const mult = Math.min(1 + (S.streak - 1) * .25, 2);
+    pts = Math.round((100 + timeBonus) * mult); S.score += pts;
+    $("vPts").textContent = `+${pts} pont` + (timeBonus ? ` (időbónusz: ${timeBonus})` : "") + (mult > 1 ? ` · sorozatszorzó ×${mult}` : "");
+    sfx.ok();
+  } else {
+    S.streak = 0; S.misses.push(c); $("vPts").textContent = "+0 pont · a sorozat megszakadt"; sfx.bad();
+  }
+  const st = $("stamp"); st.textContent = choice === null ? "Lejárt" : ok ? "Helyes" : "Téves"; st.className = "stampmark anim " + (ok ? "ok" : "bad"); st.hidden = false;
+  const v = $("verdict"); v.className = "verdict " + (ok ? "ok" : "bad");
+  $("vTitle").textContent = choice === null ? (c.ans === "go" ? "Lejárt az idő: ez az utas mehetett volna" : "Lejárt az idő: ezt meg kellett volna állítani")
+    : ok ? (c.ans === "go" ? "Jó döntés: mehet" : "Jó döntés: vámvizsgálat") : (c.ans === "go" ? "Téves: ez az utas mehetett volna" : "Téves: ezt meg kellett volna állítani");
+  $("vText").textContent = c.why; $("vSrc").textContent = c.src;
+  $("btnNext").textContent = S.i === L.round - 1 ? "Műszak vége" : "Következő utas";
+  v.hidden = false; stats(true); $("btnNext").focus({ preventScroll: true });
+  v.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+}
+function next() {
+  if (!S || !S.answered) return;
+  if (S.i < L.round - 1) { S.i++; show(); $("card").scrollIntoView({ block: "nearest" }); } else finish();
+}
+function stats(answered) {
+  $("sScore").textContent = S.score; $("sRound").textContent = (S.i + 1) + "/" + L.round; $("sStreak").textContent = S.streak;
+  $("prog").style.width = ((S.i + (answered ? 1 : 0)) / L.round * 100) + "%";
+}
+function finish() {
+  stopTimer();
+  const ratio = S.correct / L.round;
+  const r = RANKS.find(([min]) => ratio >= min);
+  $("game").hidden = true; $("end").hidden = false; setRulesLock(false);
+  $("eBadge").textContent = `${L.title} · ${S.correct} / ${L.round} helyes · ${S.score} pont · leghosszabb sorozat: ${S.best}`;
+  $("eRank").textContent = r[1]; $("eText").textContent = r[2];
+  const prev = store.get("best:" + L.id, null);
+  if (prev === null || S.score > prev) {
+    store.set("best:" + L.id, S.score);
+    $("eRecord").textContent = prev === null ? `Első rekordod ezen a szinten: ${S.score} pont.` : `Új rekord! Az előző ${prev} pont volt.`;
+    $("eRecord").hidden = false;
+  } else { $("eRecord").textContent = `A rekordod ezen a szinten: ${prev} pont.`; $("eRecord").hidden = false; }
+  const ul = $("eMistakes"); ul.innerHTML = "";
+  S.misses.forEach(m => { const li = document.createElement("li"); const b = document.createElement("b"); b.textContent = m.name + ": "; li.append(b, document.createTextNode(m.why)); ul.append(li); });
+  sfx.end();
+  $("end").scrollIntoView({ block: "start" });
+}
+
+$("btnGo").addEventListener("click", () => decide("go"));
+$("btnStop").addEventListener("click", () => decide("stop"));
+$("btnNext").addEventListener("click", next);
+$("btnAgain").addEventListener("click", () => start());
+$("btnMenu").addEventListener("click", menu);
+$("btnQuit").addEventListener("click", menu);
+$("btnSound").addEventListener("click", () => { soundOn = !soundOn; store.set("sound", soundOn); renderSound(); });
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || $("game").hidden || !S) return;
+  const k = e.key.toLowerCase();
+  if (!S.answered && (k === "n" || k === "arrowleft")) { e.preventDefault(); decide("go"); }
+  else if (!S.answered && (k === "e" || k === "arrowright")) { e.preventDefault(); decide("stop"); }
+});
+
+renderSound(); menu();
+
+// Offline működés és telepíthetőség (csak saját tárhelyen, https alatt)
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
