@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Határállomás</title>
 <meta name="description" content="Pénzügyőrös kvízjáték a vámszabályokról: nincs ellenőrzés vagy ellenőrzés?">
+<meta name="author" content="Bartha Boglárka">
 <meta name="theme-color" content="#2F4A3A">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -168,6 +169,7 @@ th { font-weight: 600; }
 .end p { margin: 0; max-width: 60ch; }
 .mistakes { margin: 0; padding-left: 18px; font-size: 15px; display: flex; flex-direction: column; gap: 6px; }
 footer { font-size: 13px; color: var(--muted); }
+footer .copy { display: inline-block; margin-top: 8px; font-weight: 600; }
 
 @media (max-width: 600px) {
   .card-body { grid-template-columns: 1fr; }
@@ -186,9 +188,9 @@ footer { font-size: 13px; color: var(--muted); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <span class="eyebrow">Az utasokra vonatkozó vámszabályok alapján</span>
+      <span class="eyebrow">Az utasokra vonatkozó legfőbb jogszabályok alapján</span>
       <h1>Határállomás</h1>
-      <p class="sub">Pénzügyőr vagy. Nézd meg az utas adatait és poggyászát, és döntsd el: mehet ellenőrzés nélkül, vagy ellenőrzésre küldöd?</p>
+      <p class="sub">Legyél Te is pénzügyőr, és válaszd ki ellenőrzésre az utasokat.</p>
     </div>
     <div class="stats" id="stats" aria-live="polite" hidden>
       <div class="stat"><b id="sScore">0</b><span>Pont</span></div>
@@ -312,7 +314,7 @@ footer { font-size: 13px; color: var(--muted); }
     </div>
   </details>
 
-  <footer>Minden eset a NAV 2026-os Utastájékoztatójának egy-egy szabályára épül. Ez egy független oktatójáték, nem a NAV hivatalos alkalmazása. A valódi utazás előtt mindig a hatályos szabályokat nézd meg: nav.gov.hu, 1819.</footer>
+  <footer>Minden eset a 2026-os hatályos jogszabályok szerint készült. Ez egy független oktatójáték, nem a NAV hivatalos alkalmazása. A valódi utazás előtt mindig a hatályos szabályokat nézd meg: nav.gov.hu, 1819.<br><span class="copy">© 2026 Bartha Boglárka. Minden jog fenntartva.</span></footer>
 </div>
 
 <script>
@@ -934,8 +936,11 @@ const LEVELS = [
   { id: "normal", title: "Ügyintéző", desc: "12 utas, utasonként 20 másodperc.", round: 12, time: 20, lockRules: false },
   { id: "hard", title: "Revizor", desc: "15 utas, 10 másodperc, az Utasforgalmi törvény zárva.", round: 15, time: 10, lockRules: true },
 ];
-const RANKS = [[1, "Vámfőfelügyelő", "Hibátlan műszak! Egyetlen utas sem csúszott át."], [.83, "Pénzügyőr", "Kiváló munka, a határ jó kezekben van."],
-  [.58, "Próbaidős pénzügyőr", "Jó alap. Lapozd át az Utasforgalmi törvényt, és próbáld újra!"], [0, "Gyakornok", "Még van mit tanulni. Az Utasforgalmi törvényben minden szükséges szám megtalálható."]];
+const RANKS = [
+  [1, "🏆 Osztályvezető", "Gratulálunk, vezetőnek születtél! A vámjogszabályokat kívülről fújod, a rendészeti ismeretek a kisujjadban vannak, és még a legtrükkösebb kérdések sem tudnak kifogni rajtad. A szakmai tudásod megkérdőjelezhetetlen. Már csak az osztályvezetői iroda kulcsát kell átvenned!"],
+  [.83, "🥇 Igazi finánc", "Benned igazi pénzügyőrvér csörgedezik! Magabiztosan mozogsz a vámok, adók és rendészeti szabályok világában. Néha becsúszik egy-egy hiba, de a szakmai alapjaid szilárdak. Egy kis gyakorlás, és hamarosan te magad is oktathatod a következő pénzügyőrgenerációt!"],
+  [.58, "🥈 Próbaidős pénzügyőr", "Az egyenruha már jól áll, de még van mit tanulnod! Az alapokkal tisztában vagy, azonban néhány jogszabály és szakmai kérdés még képes megizzasztani. Ne aggódj, minden tapasztalt finánc kezdte valahol! Tanulj, gyakorolj, és bizonyítsd be, hogy méltó vagy a véglegesítésre!"],
+  [0, "🪖 Kopasz", "Úgy tűnik, még friss a bakancsod, és a szolgálati szabályzatot sem sikerült teljesen kiismerned! A vámeljárások útvesztőjében egyelőre könnyen eltévedsz, és néha még a vámtarifaszámok is összefolynak a szemed előtt. De semmi sincs veszve! Irány vissza a tanterem, mert a következő szolgálat előtt még szükséged lesz néhány eligazításra!"]];
 
 const $ = id => document.getElementById(id);
 const store = {
