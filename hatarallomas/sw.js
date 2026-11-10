@@ -1,5 +1,5 @@
 // Offline gyorsítótár: a játék fájljai előre, a betűtípusok első betöltéskor kerülnek be
-const CACHE = "hatarallomas-v6";
+const CACHE = "hatarallomas-v7";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
